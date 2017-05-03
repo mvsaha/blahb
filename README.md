@@ -7,8 +7,9 @@
 
 ###### What `blahb` doesn't do:
 * Geographic transformations.
-* Represents continuous coordinates
+* Represent continuous coordinates
 * Anything that isn't rectilinear pixels on a regular grid.
+* Real-time image processing
 
 ###### When should you use `blahb`?
 * If you have a sparse N-dimensional image, perhaps with associated data, on which you want to perform spatial image processing techniques.
