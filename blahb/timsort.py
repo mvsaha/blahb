@@ -8,7 +8,7 @@ import numpy as np
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 
-from numblahb.settings import parse_chunk_args
+from .settings import parse_chunk_args
 from .utils import enlarge_array
 
 spec = OrderedDict()

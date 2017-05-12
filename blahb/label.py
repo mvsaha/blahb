@@ -1,6 +1,6 @@
 import numba
 from .utils import exponential_search
-from numblahb.strgen import *
+from .strgen import *
 
 
 def _split_init_into_coords_init_str(dim):

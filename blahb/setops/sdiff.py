@@ -7,7 +7,7 @@ from ..bits import (UNIQUE, SORTED)
 from ..settings import parse_chunk_args
 from ..chunk import gen_cochunks
 from ..utils import enlarge_array
-from numblahb.utils import lex_less_Nd, eq_Nd
+from ..utils import lex_less_Nd, eq_Nd
 
 
 @numba.njit

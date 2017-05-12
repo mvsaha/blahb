@@ -36,6 +36,7 @@ from ._intersection_direct import (_intersection_direct_1d,
 
 from ...data import merge_data_direct
 
+
 @numba.njit(nogil=True)
 def intersection_(a, b, MERGE=None):
     """ Find the locations common to both a and b, merging data if necessary.

@@ -1,7 +1,7 @@
 import numpy as np
 import numba
 
-from numblahb.utils import enlarge_array, lex_less_Nd, eq_Nd
+from ...utils import enlarge_array, lex_less_Nd, eq_Nd
 
 
 @numba.njit(nogil=True)

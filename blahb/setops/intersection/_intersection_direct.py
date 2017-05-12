@@ -1,7 +1,7 @@
 import numpy as np
 import numba
 
-from numblahb.utils import lex_less_Nd, eq_Nd
+from ...utils import lex_less_Nd, eq_Nd
 
 
 @numba.njit

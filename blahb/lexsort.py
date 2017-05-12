@@ -1,7 +1,8 @@
 import numpy as np
 import numba
 
-from numblahb.utils import enlarge_array
+from .utils import enlarge_array
+
 
 @numba.njit
 def update_breaks(known_breaks, coords):

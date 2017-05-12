@@ -1,8 +1,8 @@
 import numpy as np
 import numba
 
-from numblahb.utils import enlarge_array, enlarge_mat, lex_less_Nd, eq_Nd
-from numblahb.setops.utils import append_remaining
+from ...utils import enlarge_array, enlarge_mat, lex_less_Nd, eq_Nd
+from ...setops.utils import append_remaining
 
 
 @numba.njit
