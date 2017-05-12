@@ -13,7 +13,7 @@ from collections import OrderedDict
 
 from .lexsort import lexsort_inplace
 from .unique import _unique_locations_in_sorted
-from .utils import exponential_search
+from .utils import exponential_search, lex_less_Nd, eq_Nd
 from .bits import *
 
 
@@ -34,9 +34,9 @@ spec['_data'] = numba.optional(numba.float32[:, :])
 class IndexSet:
     """Representation of a set of N-dimensiontal pixel locations.
     
-    Pixel values are stored in a (n X ndim) lexicographically sorted numpy array
-    which allows linear computation of set operations, an other fast image
-    processing operations.
+    Pixel values are stored in a (n-by-ndim) lexicographically sorted numpy
+    array which allows linear computation of set operations, an other fast
+    image processing operations.
     
     This is a numba jitclass and can be used in nopython functions.
     """
@@ -52,11 +52,6 @@ class IndexSet:
             array stored in this object must be unique_ and lexicographically
             sorted, these flags indicate whether or not this is already True
             and whether or not we can mutate `loc` if it isn't.
-        
-        bounds : None | ndim-by-2 int32 array
-            If the minimum and maximum value along each dimension are known,
-            they may be given to the constructor. Generally, users should just
-            set this to None.
         
         Notes
         -----
@@ -123,6 +118,7 @@ class IndexSet:
             loc = loc[_uniq_loc, :]
         
         self._loc = loc
+    
     
     # Properties
     
@@ -343,9 +339,6 @@ def make_data(x):
     if data.ndim == 1:
         data =  data[..., None]
     return data
-
-
-from numblahb.utils import lex_less_Nd, eq_Nd
 
 
 def concat_sorted_nonoverlapping(objs):
