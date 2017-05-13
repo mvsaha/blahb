@@ -6,13 +6,13 @@ import numba
 
 __all__ = (
     'NO_FLAGS',
-    'UNIQUE', 'unique_', '_BLAHB_NOT_UNIQUE',
+    'UNIQUE', 'unique_',
     'SORTED_UNIQUE',
-    'SORTED', 'sorted_', '_BLAHB_NOT_SORTED',
-    'COPY', 'copy_', '_BLAHB_NOT_COPY',
+    'SORTED', 'sorted_',
+    'COPY', 'copy_',
     'KEEP_SORT_ORDER', 'keep_sort_order_',
-    'CONSUME', 'consume_', '_BLAHB_NOT_CONSUME',
-
+    'CONSUME', 'consume_',
+    
     'DATA_NANS_PROPAGATE',  #'_BLAHB_DATA_NONE',
     'DATA_NANSUM', 'data_nansum',
     'DATA_SUM', 'data_sum',
@@ -41,15 +41,12 @@ _BLAHB_NOT_SORTED = ~SORTED
 
 COPY = np.uint8(4)
 copy_ = numba.njit(lambda: COPY)
-_BLAHB_NOT_COPY = ~COPY
 
 KEEP_SORT_ORDER = np.uint8(8)
 keep_sort_order_ = lambda: KEEP_SORT_ORDER
-_BLAHB_NOT_KEEP_SORT_ORDER = ~KEEP_SORT_ORDER
 
 CONSUME = np.uint8(16)
 consume_ = lambda: CONSUME
-_BLAHB_NOT_CONSUME = ~CONSUME
 
 
 # This is commonly used
