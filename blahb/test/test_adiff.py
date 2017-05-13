@@ -1,4 +1,4 @@
-from ..bits import *
+from ..flags import *
 from ..setops import asymmetric_difference_
 from .utils import *
 

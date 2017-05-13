@@ -11,7 +11,7 @@ from .indexset import IndexSet
 from .multiblob import MultiBlob
 
 from .setops import union
-from .bits import *
+from .flags import *
 
 
 def is_odd(val):

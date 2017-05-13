@@ -3,7 +3,7 @@ from numpy.random import randint
 from numpy.testing import assert_array_equal as AAE
 
 from ..indexset import IndexSet
-from ..bits import *
+from ..flags import *
 
 
 rand_bool = lambda: bool(randint(0, 2))

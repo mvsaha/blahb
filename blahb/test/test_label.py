@@ -3,7 +3,7 @@ import scipy.ndimage as ndi
 
 from ..neighborhood import Neighborhood
 from ..indexset import IndexSet
-from ..bits import *
+from ..flags import *
 from ..image import image
 
 

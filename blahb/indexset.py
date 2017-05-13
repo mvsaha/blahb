@@ -14,7 +14,7 @@ from collections import OrderedDict
 from .lexsort import lexsort_inplace
 from .unique import _unique_locations_in_sorted
 from .utils import exponential_search, lex_less_Nd, eq_Nd
-from .bits import *
+from .flags import *
 
 
 # For indexsets with less elements that this we will not cache bounds
@@ -117,7 +117,7 @@ class IndexSet:
             _uniq_loc = _unique_locations_in_sorted(loc)
             loc = loc[_uniq_loc, :]
         
-        self._loc = loc
+        self._loc = loc.astype(np.int32)
     
     
     # Properties
@@ -220,8 +220,6 @@ class IndexSet:
             if c != coords[start]:
                 return False, start
         return True, start
-        
-            
     
     def omit(self, dim, selector):
         """Remove matching locations from this IndexSet.
@@ -323,7 +321,6 @@ def make_empty(ndim):
     loc = np.zeros((0, ndim), dtype=np.int32)
     return IndexSet(loc, SORTED_UNIQUE)
 
-    
 
 def make_indexset(x):
     # Coerce a 1d or 2d array into an IndexSet

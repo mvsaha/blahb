@@ -5,7 +5,7 @@ Class for tracking the result of selection to allow for chaining.
 import numba
 import numpy as np
 
-from .bits import *
+from .flags import *
 from .indexset import IndexSet
 from .sel import _sel
 from .omit import _omit

@@ -3,7 +3,7 @@ Selecting locations in a IndexSet based on their sorted location.
 """
 
 import numba
-from .bits import *
+from .flags import *
 from .indexset import IndexSet
 
 

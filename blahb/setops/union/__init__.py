@@ -7,7 +7,7 @@ from ...settings import parse_chunk_args
 from ...chunk import gen_cochunks
 from ...data import merge_data_direct, merge_data_indirect
 from ...data import all_short_circuit_merges, order_does_not_matter
-from ...bits import *
+from ...flags import *
 
 from ._union_big_small import (_union_big_small_1d, _union_big_small_2d,
     _union_big_small_3d, _union_big_small_4d, _union_big_small_Nd,

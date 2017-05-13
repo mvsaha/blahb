@@ -1,6 +1,6 @@
 from .neighborhood import Neighborhood
 from .indexset import IndexSet, make_indexset, make_data
-from .image import image, where_, where_data_
+from .image import image, where, where_, where_data, where_data_
 from .setops import union, union_, union_multi_
 from .setops import intersection, intersection_, intersection_multi_
 from .setops import symmetric_difference, symmetric_difference_

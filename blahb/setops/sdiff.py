@@ -3,7 +3,7 @@ import numba
 from concurrent.futures import ThreadPoolExecutor
 
 from ..indexset import IndexSet, concat_sorted_nonoverlapping
-from ..bits import (UNIQUE, SORTED)
+from ..flags import (UNIQUE, SORTED)
 from ..settings import parse_chunk_args
 from ..chunk import gen_cochunks
 from ..utils import enlarge_array

@@ -3,7 +3,7 @@ Functions that allow propagation of associated data through set operations.
 """
 import numpy as np
 import numba
-from .bits import *
+from .flags import *
 
 
 @numba.njit
@@ -158,7 +158,7 @@ def merge_data_column_indirect(contrib, data_in, data_out, MERGE_DATA):
         raise ValueError("Invalid MERGE_DATA flag.")
 
 
-from .bits import DATA_NANFIRST
+from .flags import DATA_NANFIRST
 __DEFAULT_MERGE_ACTION = DATA_NANFIRST
 
 

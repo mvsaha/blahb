@@ -12,7 +12,7 @@ from collections import OrderedDict
 
 from .indexset import IndexSet, make_empty
 from .utils import exponential_search
-from .bits import *
+from .flags import *
 
 # For indexsets with less elements that this we will not cache bounds
 _bounds_threshold = 32

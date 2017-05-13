@@ -2,7 +2,7 @@ import numpy as np
 import numba
 from concurrent.futures import ThreadPoolExecutor
 
-from ..bits import *
+from ..flags import *
 from ..settings import parse_chunk_args
 from ..chunk import gen_cochunks
 from ..indexset import IndexSet, concat_sorted_nonoverlapping

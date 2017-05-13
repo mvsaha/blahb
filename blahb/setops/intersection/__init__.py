@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 from ...settings import parse_chunk_args
 from ...chunk import gen_cochunks
 from ...indexset import IndexSet, concat_sorted_nonoverlapping
-from ...bits import SORTED, UNIQUE
+from ...flags import SORTED, UNIQUE
 from ...data import all_short_circuit_merges
 
 from ._intersection_contrib import (_intersection_contrib_1d,

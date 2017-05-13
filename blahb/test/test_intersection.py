@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..bits import *
+from ..flags import *
 from ..setops import intersection_
 from .utils import *
 

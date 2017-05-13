@@ -7,7 +7,7 @@ import numba
 
 from .utils import expand_maybe
 from .indexset import IndexSet
-from .bits import SORTED_UNIQUE
+from .flags import SORTED_UNIQUE
 
 def image(indexset, padding=0, data_col=None):
     """Convert an indexset into a cropped boolean image.
@@ -66,6 +66,9 @@ def where_(img, offsets=0):
     return IndexSet(loc, SORTED_UNIQUE)
 
 
+where = where_
+
+
 @numba.njit
 def where_data_(img, offsets=0):
     """Extract the non-NaN pixels of a floating point image.
@@ -98,3 +101,6 @@ def where_data_(img, offsets=0):
     result = IndexSet(loc, SORTED_UNIQUE)
     result._data = data.reshape((-1, 1))
     return result
+
+
+where_data = where_data_

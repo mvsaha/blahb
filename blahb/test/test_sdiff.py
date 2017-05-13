@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..bits import *
+from ..flags import *
 from ..setops import symmetric_difference_
 from .utils import *
 

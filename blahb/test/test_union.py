@@ -2,7 +2,7 @@ import numpy as np
 from numpy.testing import  assert_array_equal as AAE
 
 from ..indexset import IndexSet, make_indexset, make_data
-from ..bits import *
+from ..flags import *
 from ..setops import union_
 
 
