@@ -55,10 +55,11 @@ class IndexSet:
         
         Notes
         -----
-        Possible flags (these names are found by importing blahb.bits):
-        ! DO NOT ASSIGN VALUES TO THESE FLAGS.
+        Possible flags (found importing blahb.flags):
         
-        NO_FLAGS :
+        NO_FLAGS : Make no assumptions about the ownership, sortedness or
+            uniqueness of the input array.
+        
         CONSUME : `loc` may be sorted in place. Other users of `loc`
             will observe changes in this array. This only applies to the
             case where SORTED is not set.
@@ -66,17 +67,12 @@ class IndexSet:
         SORTED : `loc` is already lexicographically sorted, but may
             have repeated rows. This will NOT mutate `loc`.
         
-        COPY : Copy `loc`. Forces a copy of .loc, even if `loc` is
-            already sorted. This ensures that .loc does not reference an
-            array outside of this object.
-        
         UNIQUE : `loc` is already unique_ (has no repeated rows), but
             may not be lexicographically sorted. This will not mutate `loc`.
         
         Multiple flags can be combined with the `|` operator. For example:
-        if the input `loc` is sorted and unique_, but we want IndexSet to make
-        a copy, we would give the flag:
-            SORTED | _BLABH_UNIQUE | COPY
+        if the input `loc` is sorted and unique we would give the flag:
+            SORTED | UNIQUE
         
         Only skip sorting and uniquing if you are absolutely sure that the
         input locations already have these properties. These requirements are
@@ -95,25 +91,23 @@ class IndexSet:
             raise ValueError("copy_ and consume_ cannot "
                              "both be set together.")
         
-        if FLAGS & (SORTED | UNIQUE):
+        if (FLAGS & SORTED) & (FLAGS & UNIQUE):
             if FLAGS & COPY:
                 loc = loc.copy()
         
         elif not (FLAGS & SORTED):
             # Sorting modifies the array, so if we don't want to consume it
             # (it's owned by some other object) we should copy it
+            if FLAGS & KEEP_SORT_ORDER:
+                raise ValueError("Not implemented")
+            
             if not (FLAGS & CONSUME):
                 loc = loc.copy()
-            
             uniq_loc, sort_order = lexsort_inplace(loc, True)
-            
-            if FLAGS & KEEP_SORT_ORDER:
-                pass
             
             if not (FLAGS & UNIQUE):
                 loc = loc[uniq_loc]
-        else:  # (FLAGS & unique_)
-            # Already sorted, must be made unique_
+        else:  # Already sorted, must be made unique
             _uniq_loc = _unique_locations_in_sorted(loc)
             loc = loc[_uniq_loc, :]
         
