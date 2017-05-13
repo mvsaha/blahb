@@ -1,0 +1,4 @@
+- [0. Motivation](index.md)
+- [1. Getting Started](1_intro.md)
+- [2. Set Operations](2_setops.md)
+- (3) Associated Data

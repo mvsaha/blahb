@@ -1,5 +1,9 @@
 `blahb` is a python3 library for object-based image analysis that takes a pixel-centric approach to common spatial analysis tasks on a regular grid.
 
+- (0) Motivation
+- [1. Getting Started](1_intro.md)
+- [2. Set Operations](2_setops.md)
+- [3. Associated Data](3_data.md)
 
 ###### What `blahb` does:
 * Represents N-dimensional indexes into an image and associated pixel data
@@ -83,3 +87,8 @@ The aim of `blahb` is to provide:
 - A `numba.jitclass` similar to the above set-of-coordinate tuples that scales well to real image sizes (i.e. tens of millions of pixels) with an arbitrary number of dimensions (such as an image stack).
 - Operators like the above `|` for efficiently manipulating comparing and combining these sets.
 - Effortless integration with both `numpy` and `numba.njit` nopython functions when you want to write your own extensions.
+
+- (0) Motivation
+- [1. Getting Started](1_intro.md)
+- [2. Set Operations](2_setops.md)
+- [3. Associated Data](3_data.md)
