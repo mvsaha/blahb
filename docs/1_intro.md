@@ -188,7 +188,7 @@ This can lead to a dangerous scenario where you forget that `external_loc` refer
 # DON`T DO!
 external_loc[1, 0] += 2
 ```
-Now the `IndexSet` `i` is in an invalid state (it is no longer sorted) and the operations that you perform on `i` may fail silently, giving you the wrong answer. Be careful to consider all the ways in which you may invalidate `i.loc`. When in doubt, ensure safety with by using `NO_FLAGS`.
+Now the `IndexSet` `i` is in an invalid state (it is no longer sorted) and the operations that you perform on `i` will fail silently, giving you the wrong answer. Be careful to consider all the ways in which you may invalidate `i.loc`. When in doubt, ensure safety by using `NO_FLAGS`.
 
 ## Methods on an `IndexSet`
 There are various methods
@@ -201,16 +201,47 @@ Take locations at the given position in the array.
 #### With an `array`
 
 ---
-### `.sel(dim, criterion)`
-Take locations have a matching value along a given dimension
+### `.sel(dimension, criterion)`
+Take locations have a matching value along a given dimension. Short for 'select'.
+
+The general idea of `.sel` is this:
+
+*The first time you call `.sel` on an `IndexSet`, an object of the type `SelResult` is returned. You can then `.sel` on this object as well, repeatedly.
+When you are done `.sel`-ing call `.fin()` to finish the selection process and return a `IndexSet` with only the criterion.* 
 
 #### With a `slice`
 #### With a `range`
 #### With a `int`
 #### With an `array`
 
+An example for clarification. Assume we have the following `IndexSet` `a`.
+```python
+>>>loc = np.array([[-2, 1],
+                   [-3, 3],
+                   [ 2, 7],
+                   [ 4, 5],
+                   [ 3, 4],
+                   [ 5, 7]], dtype=np.int32)
+>>>bl.IndexSet(loc, bl.flags.NO_FLAG)
+```
+And we want to select all values in the inclusive range [0, 4] along the first dimension and any value in the array [1, 3, 5, 7] in the second. 
+```python
+>>>b = a.sel(0, (0, 4)).sel(2, np.array([1, 3, 5, 7])).fin()
+>>>b.loc
+array([[2, 7],
+       [4, 5]], dtype=int32)
+```
+
+Why bother with the intermediate `SelResult` and `.fin()`?
+This way we can iteratively narrow the scope of the query before actually extracting the values we want.
+This greatly enhances the speed of multi-criteria queries.
+
+*Performance Tips:*
+- Always, always, *always* `sel` in order of increasing dimensions *first* if you have multiple criteria on different dimensions. Selection is a linear time operation on all dimensions but the first, but roughly O(log n) in the first dimension because the first column of `.loc` is sorted ascending due to its lexicographical ordering (this is a class invariant).
+- Selecting values using an array criterion is slow even on the lowest dimension. If you can forumulate your problem to avoid this you should.
+
 ---
-### `.omit(dim, criterion)`
+### `.omit(dimension, criterion)`
 Take locations have a non-matching value along a given dimension
 
 ---
@@ -223,5 +254,5 @@ Split into two `IndexSets` at the given position.
 
 ---
 ### `.copy()`
-Make a deep copy of an IndexSet.
+Make a deep copy of an `IndexSet`.
 All locations an associated data will be copied.
