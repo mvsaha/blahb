@@ -191,12 +191,33 @@ external_loc[1, 0] += 2
 Now the `IndexSet` `i` is in an invalid state (it is no longer sorted) and the operations that you perform on `i` will fail silently, giving you the wrong answer. Be careful to consider all the ways in which you may invalidate `i.loc`. When in doubt, ensure safety by using `NO_FLAGS`.
 
 ## Methods on an `IndexSet`
-There are various methods
+Here we list some various methods on an `IndexSet`.
 
 ### `.take(positions)`
-Take locations at the given position in the array.
+Take rows at the given positions in `loc`, returning an `IndexSet` with those rows.
+Conceptually, you should think of `take` as a you would `[]` access (`numba` does not yet support magic methods on `jitclass`es).
+
+The `positions` argument can have a few different forms:
 #### With a `slice`
+```python
+>>>loc = np.array([[1, 2],
+                   [3, 1],
+                   [4, 0],
+                   [4, 2],
+                   [4, 3],
+                   [5, 0]], dtype=np.int32)
+>>>a = bl.IndexSet(loc, bl.flags.NO_FLAGS)
+>>>b = a.take(slice(3, None))
+>>>b.loc
+array([[4, 2],
+       [4, 3],
+       [5, 0]], dtype=int32)
+```
+
 #### With a `range`
+This is identical to range except that .
+
+
 #### With a `int`
 #### With an `array`
 
