@@ -5,7 +5,7 @@
 
 # 1. Getting Started: The `IndexSet`
 
-The basic unit of`blahb` is the `IndexSet`.
+The basic unit of `blahb` is the `IndexSet`.
 `IndexSet` is a `numba.jitclass` that stores the values of `True`, and only `True`, pixels in an image. If you are not familiar with `numba`, don't worry.
 All of the functionality is available to you in regular python code (or we'll mention when this is not the case).
 
@@ -37,7 +37,9 @@ Locations are always stored as 32 bit integers.
 Indexes outside of the range [-2147483648, 2147483647] are not supported.
 
 Finally, instances of `IndexSet` should be treated as immutable.
-Although allowed through language mechanics, you should never assign to values of an `IndexSet` (particularly `loc`). Per, python convention, protected members usually have a prepended underscore (`_`), but in some cases references to un-copied internals (such as `loc`, `bounds`) are exposed. You should *NEVER EVER* assign to these values.
+Although allowed through language mechanics, you should never assign to values of an `IndexSet` (particularly `loc`).
+Per, python convention, protected members usually have a prepended underscore (`_`), but in some cases references to un-copied internals (such as `loc`, `bounds`) are exposed.
+You should *NEVER EVER* assign to these values.
 
 ## `IndexSet` Properties
 Before we go over how to build an `IndexSet`, let's go over some of the properties that will help you get a sense of exactly what indices are contained in your `IndexSet`.
@@ -92,7 +94,8 @@ array([[0, 3],
        [3, 3]], dtype=int32)
 ```
 ### 2. Manually
-You can create an `IndexSet` by manually passing in the `loc` array. Remember: the `loc` array must be 32 bit signed integers. It is the user's responsibility to make sure that the array is in the proper format.
+You can create an `IndexSet` by manually passing in the `loc` array. Remember: the `loc` array must be 32 bit signed integers.
+It is the user's responsibility to make sure that the array is in the proper format.
 ```python
 import blahb as bl
 from blahb.flags import NO_FLAG
@@ -109,7 +112,7 @@ Here are the possible flags and what you are asserting when you are asserting wh
 - `blahb.flags.UNIQUE`
     - Each row of the input array is unique.
 - `blahb.flags.CONSUME`
-    The input array has no external references and we can mutate it as we like.
+    - The input array has no external references and we can mutate it as we like.
     If there are external references, then the sorting and other changes made to this array will be visible.
     Any external references *MUST NOT* mutate `loc` under *ANY* conditions.
 
@@ -117,7 +120,8 @@ These flags are bit-flags that can be combined using the `|` operator. For examp
 ```
 IndexSet(loc, blahb.flags.UNIQUE | blahb.flags.CONSUME)
 ```
-tells the constructor that the input `loc` array is already unique and that there are no external references. The lack of a `SORTED` flag means that sorting must still be done, but we can do it in place (i.e. by mutating `loc`) because `CONSUME` is set.
+tells the constructor that the input `loc` array is already unique and that there are no external references.
+The lack of a `SORTED` flag means that sorting must still be done, but we can do it in place (i.e. by mutating `loc`) because `CONSUME` is set.
 
 *WARNING* - Do not use any of these flags unless you are sure that the conditions are met.
 These requirements are class invariants and essentially every computation you do will be incorrect if these invariants are violated.
@@ -188,17 +192,20 @@ This can lead to a dangerous scenario where you forget that `external_loc` refer
 # DON`T DO!
 external_loc[1, 0] += 2
 ```
-Now the `IndexSet` `i` is in an invalid state (it is no longer sorted) and the operations that you perform on `i` will fail silently, giving you the wrong answer. Be careful to consider all the ways in which you may invalidate `i.loc`. When in doubt, ensure safety by using `NO_FLAGS`.
+Now the `IndexSet` `i` is in an invalid state (it is no longer sorted) and the operations that you perform on `i` will fail silently, giving you the wrong answer.
+Be careful to consider all the ways in which you may invalidate `i.loc`.
+When in doubt, ensure safety by using `NO_FLAGS`.
 
 ## Methods on an `IndexSet`
-Here we list some various methods on an `IndexSet`.
+Here we list various methods on an `IndexSet`.
 
 ### `.take(positions)`
 Take rows at the given positions in `loc`, returning an `IndexSet` with those rows.
-Conceptually, you should think of `take` as a you would `[]` access (`numba` does not yet support magic methods on `jitclass`es).
+
+Conceptually, you should think of `take` as a you would `[]`/`__getitem__` access (`numba` does not yet support magic methods on `jitclass`es).
 
 The `positions` argument can have a few different forms:
-#### With a `slice`
+##### With a `slice`
 ```python
 >>>loc = np.array([[1, 2],
                    [3, 1],
@@ -208,34 +215,96 @@ The `positions` argument can have a few different forms:
                    [5, 0]], dtype=np.int32)
 >>>a = bl.IndexSet(loc, bl.flags.NO_FLAGS)
 >>>b = a.take(slice(3, None))
+>>>b
+<numba.jitclass.boxing.IndexSet at 0x...>
+
 >>>b.loc
 array([[4, 2],
        [4, 3],
        [5, 0]], dtype=int32)
 ```
 
-#### With a `range`
-This is identical to range except that .
+##### With a range of values
+This is identical to using a `slice`, but instead of building a `slice` object, you can pass in a tuple of values giving the lower and upper bounds:
+```python
+>>>b = a.take((2, 7))  # Same `a` as above
+>>>b.loc
+array([[4, 0],
+       [4, 2],
+       [4, 3],
+       [5, 0]], dtype=int32)
+```
 
+##### With an `int`
+This selects a single row from an `IndexSet`.
+```python
+>>>a.take(2).loc
+array([[3, 1]], dtype=int32)
+```
+This method raises an `IndexError` if the integer index is out of bounds.
 
-#### With a `int`
-#### With an `array`
+##### With an `array`
+This extracts specific rows at the specified indices.
+```python
+>>>a.take(np.array([0, 2, 3])).loc  # Extract the first, third and fourth rows
+array([[1, 2],
+       [4, 0],
+       [4, 2]], dtype=int32)
+```
+
+If a `slice`, range, or `int` is used to identify postions along the first dimension, then this will create a view into the array being taken from.
+This can be much faster than copying the rows into a new `loc` array.
+If you do not want your `loc` to share memory (for instance if a ref-counted reference is keeping a large, un-needed parent alive) then you can call `copy()` on an `IndexSet` to sever any references.
 
 ---
 ### `.sel(dimension, criterion)`
-Take locations have a matching value along a given dimension. Short for 'select'.
+Select locations have a matching value along a given dimension.
 
 The general idea of `.sel` is this:
 
-*The first time you call `.sel` on an `IndexSet`, an object of the type `SelResult` is returned. You can then `.sel` on this object as well, repeatedly.
+*The first time you call `.sel` on an `IndexSet`, an object of the type `SelResult` is returned.
+You can then `.sel` on this object as well, repeatedly.
 When you are done `.sel`-ing call `.fin()` to finish the selection process and return a `IndexSet` with only the criterion.* 
 
-#### With a `slice`
-#### With a `range`
-#### With a `int`
-#### With an `array`
 
-An example for clarification. Assume we have the following `IndexSet` `a`.
+To select values, call `.sel(dim, criterion)` where `dim` is an integer dimension number (starting at 0 for the lowest dimension) and `criterion` can have one of the following forms:
+#### With a `slice`
+Select values that lie within an inclusive range.
+
+The following example selects rows having a value between 2 and 4 (inclusive) in the second dimension (dimension index of 1):
+```python
+>>>loc = np.array([[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6]], np.int32)
+>>>a = bl.IndexSet(loc, bl.flags.NO_FLAG)
+>>>b = a.sel(1, slice(2, 4))
+>>>b  # sel-ing returns an intermediate SelResult object
+<numba.jitclass.boxing.SelResult at 0x...>
+>>>c = b.fin()  # Call .fin to finish the selection process
+>>>c.loc
+array([[1, 2],
+       [2, 3],
+       [3, 4]], dtype=int32)
+```
+
+#### With a range of values
+As with `.take`, this you can pass in a tuple of (low, high) values instead of passing a `slice` object.
+```python
+a.sel(0, (2, 4))
+```
+
+#### With a `int`
+Selects rows that are equal to a value along a given dimension:
+```python
+a.sel(1, 4)
+```
+
+#### With an `array`
+Selects rows that have values in a given array along a given dimension:
+```python
+a.sel(1, np.array([1, 3, 5]))
+```
+
+#### Example
+An example for clarification. Assume we have the following `IndexSet` `a`:
 ```python
 >>>loc = np.array([[-2, 1],
                    [-3, 3],
@@ -243,7 +312,7 @@ An example for clarification. Assume we have the following `IndexSet` `a`.
                    [ 4, 5],
                    [ 3, 4],
                    [ 5, 7]], dtype=np.int32)
->>>bl.IndexSet(loc, bl.flags.NO_FLAG)
+>>>a = bl.IndexSet(loc, bl.flags.NO_FLAG)
 ```
 And we want to select all values in the inclusive range [0, 4] along the first dimension and any value in the array [1, 3, 5, 7] in the second. 
 ```python
@@ -253,27 +322,53 @@ array([[2, 7],
        [4, 5]], dtype=int32)
 ```
 
-Why bother with the intermediate `SelResult` and `.fin()`?
+What if, instead of just building an `IndexSet` of the selected values, we want to partition the array into an `IndexSet` of matching values and an `IndexSet` of all other values? We can use `.split()` instead of `.fin()` on the final `SelResult` object and it will return a tuple of `IndexSet`s: the first containing rows that matched all of the criteria, and a second containing rows that did not match all of the criteria.
+
+
+Why bother with the intermediate `SelResult` and `.fin()`/`.split()`?
 This way we can iteratively narrow the scope of the query before actually extracting the values we want.
 This greatly enhances the speed of multi-criteria queries.
 
 *Performance Tips:*
-- Always, always, *always* `sel` in order of increasing dimensions *first* if you have multiple criteria on different dimensions. Selection is a linear time operation on all dimensions but the first, but roughly O(log n) in the first dimension because the first column of `.loc` is sorted ascending due to its lexicographical ordering (this is a class invariant).
-- Selecting values using an array criterion is slow even on the lowest dimension. If you can forumulate your problem to avoid this you should.
+- Always, *always* `.sel` in order of increasing dimensions if you have multiple criteria on different dimensions.
+Selection is a linear time operation on all dimensions but the first, but roughly O(log n) in the first dimension because the first column of `.loc` is sorted ascending due to its lexicographical ordering (this is a class invariant).
+- Selecting values using an array criterion is slow even on the lowest dimension.
+If you can formulate your problem to avoid this you should.
 
 ---
 ### `.omit(dimension, criterion)`
-Take locations have a non-matching value along a given dimension
+Take locations have a non-matching value along a given dimension.
 
----
-### `.find_loc(coord)`
-Return the position of a given location and whether or not it is contained in the object.
+This is similar to `sel`, except the result *doesn't* contain any rows/dimensions matching the criteria.
+The possible criteria are the same as in `.sel`:
+- `slice` of (low, high) values.
+- (2-`tuple`) of (low, high) values.
+- An `int` for matching a specific value.
+- An `np.array` containing a list of values to omit.
 
----
-### `.split(location)`
-Split into two `IndexSets` at the given position. 
+Pro Tip: You chain `.sel` and `.omit` in a single query.
+For example, if we want all the rows with first-dimension value of 20, with second-dimension values not equal to 3, and last-dimension values in the set {1, 3, 4}:
+```python
+a.sel(0, 20).omit(1, 3).sel(2, np.array([1, 3, 4]))
+```
+
 
 ---
 ### `.copy()`
 Make a deep copy of an `IndexSet`.
 All locations an associated data will be copied.
+This will sever any references that an `IndexSet` has to external references.
+
+
+---
+### `.find_loc(coord)`
+Return the position of a given row and whether or not it is contained in the object.
+```python
+
+```
+
+---
+### `.split(location)`
+Split into two `IndexSets` at the given position.
+```python
+```
