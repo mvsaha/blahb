@@ -144,7 +144,6 @@ def write_encoded(vals, encoding, packed, start):
         shift = (column_bit_capacity - column_bit_start
                  - bits_taken - n_lsb_bits_dropped)
         
-        # TODO: Add shift == 0 clause
         if shift == 0:
             for i in range(n):
                 # Take only the first `bits_taken` higher bits
@@ -323,3 +322,29 @@ def decode(packed, encoding):
     for dim in range(encoding.size):
         start = read_encoded(packed, encoding[dim], loc[:, dim], start)
     return loc
+
+
+@numba.njit
+def compatible_encoding(a, b):
+    """Test whether two IndexSets have compatible encoding.
+    
+    Arguments
+    ---------
+    a, b: IndexSet objects
+    
+    Returns
+    -------
+    True if the encoding arrays for `a` and `b` are identical. Returns False
+    if either `a` or `b` are not encoded.
+    """
+    if (a.encoding is None or b.encoding is None or
+      a.encoding.size != b.encoding.size):
+        return False
+    
+    a_enc = a.encoding.view(np.uint8)
+    b_enc = b.encoding.view(np.uint8)
+    for i in range(a_enc.size):
+        if a_enc[i] != b_enc[i]:
+            return False
+    return True
+    

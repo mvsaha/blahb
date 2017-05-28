@@ -16,8 +16,9 @@ def take_with_slice(indexset, where):
 @numba.njit
 def take_range(indexset, where):
     """Take from an IndexSet between a start and stop location."""
-    coords = indexset.loc[where[0]:where[1]]
-    ret = IndexSet(coords, SORTED | UNIQUE)
+    loc = indexset._loc[where[0]:where[1]]
+    ret = IndexSet(loc, SORTED | UNIQUE)
+    ret._encoding = indexset._encoding
     if indexset.data is not None:
         ret._data = indexset.data[where[0]:where[1]]
     return ret
@@ -40,8 +41,9 @@ def take_with_ints(indexset, where):
     if where[0] < 0 or where[-1] >= indexset.n:
         raise IndexError("locations to take are out of bounds.")
     
-    coords = indexset.loc[where]
-    ret = IndexSet(coords, SORTED | UNIQUE)
+    loc = indexset._loc[where]
+    ret = IndexSet(loc, SORTED | UNIQUE)
+    ret._encoding = indexset._encoding
     if indexset.data is not None:
         ret._data = indexset.data[where]
     return ret
@@ -49,9 +51,10 @@ def take_with_ints(indexset, where):
 
 @numba.njit
 def take_with_int(indexset, where):
-    """Take a single integer location from a """
-    loc = indexset.loc[where:where + 1]
+    """Take a single integer location from an IndexSet."""
+    loc = indexset._loc[where:where + 1]
     ret = IndexSet(loc, SORTED | UNIQUE)
+    ret._encoding = indexset._encoding
     if indexset.data is not None:
         ret._data = indexset.data[where:where + 1]
     return ret

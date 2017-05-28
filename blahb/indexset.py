@@ -10,7 +10,7 @@ from collections import OrderedDict
 # from .take import take_
 # from .sel_result import SelResult_
 
-
+from .encoding import decode, encode
 from .lexsort import lexsort_inplace
 from .unique import _unique_locations_in_sorted
 from .utils import exponential_search, lex_less_Nd, eq_Nd
@@ -24,11 +24,12 @@ spec = OrderedDict()
 arr = np.array([[]], dtype=np.int32)
 int32_2d_arr_typ = numba.typeof(arr)
 
+spec['_ndim'] = numba.uint8
 spec['_loc'] = int32_2d_arr_typ
 spec['_bounds'] = numba.optional(int32_2d_arr_typ)
 spec['_sort_order'] = numba.optional(int32_2d_arr_typ)
 spec['_data'] = numba.optional(numba.float32[:, :])
-
+spec['_encoding'] = numba.optional(numba.int8[:])
 
 @numba.jitclass(spec)
 class IndexSet:
@@ -111,8 +112,9 @@ class IndexSet:
             _uniq_loc = _unique_locations_in_sorted(loc)
             loc = loc[_uniq_loc, :]
         
+        self._ndim = loc.shape[1]
         self._loc = loc.astype(np.int32)
-    
+        self._encoding = None
     
     # Properties
     
@@ -156,21 +158,34 @@ class IndexSet:
         self._data = value.astype(np.float32)
     
     @property
+    def encoding(self):
+        return self._encoding
+    
+    @property
     def n(self):
         """The number of rows in self.loc"""
         return self._loc.shape[0]
     
     @property
     def ndim(self):
-        return self._loc.shape[1]
+        return np.int64(self._ndim)
     
     @property
     def loc(self):
-        return self._loc
+        """Return the matrix of locations that, decoding if necessary."""
+        if self.is_encoded:
+            return decode(self._loc.view(np.uint32),
+                          self._encoding.view(np.int8))
+        else:
+            return self._loc
     
     @property
     def is_empty(self):
         return self.n == 0
+    
+    @property
+    def is_encoded(self):
+        return self._encoding is not None
     
     # Methods
     
@@ -180,6 +195,38 @@ class IndexSet:
         ret = IndexSet(self._loc.copy(), FLAGS)
         ret.data = self.data.copy()
         return ret
+    
+    def decode(self):
+        if self.is_encoded:
+            e = np.asarray(self._encoding)
+            if e is not None:
+                self._loc = decode(self._loc.view(np.uint32), self._encoding)
+            self._encoding = None
+    
+    def encode(self, encoding):
+        """Encode this IndexSet into a packed bit representation.
+        
+        Arguments
+        ---------
+        encoding : 1d int8 array
+            Gives the number of bits that each dimensions should be packed in
+            to. A negative number in this array means that negative numbers
+            should be packed as well.
+        
+        Note
+        ----
+        This method makes no checks on your data that the values in a given
+        dimension (column of .loc) can actually be represented by the number
+        of bits specified and the sign. If you specify an insufficient number
+        of bits then there will be overflow errors and your comparisons with
+        similarly encoded arrays and decoding will give wrong results.
+        """
+        if self.is_encoded:
+            raise ValueError("IndexSet is already encoded.")
+        if not encoding.size == self.ndim:
+            raise ValueError("Length of encoding must match number of dims.")
+        self._loc = encode(self._loc, encoding).view(np.int32)
+        self._encoding = encoding
     
     def find_loc(self, coord):
         """Locate a coordinate in this IndexSet
