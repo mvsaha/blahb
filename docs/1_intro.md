@@ -333,7 +333,7 @@ This greatly enhances the speed of multi-criteria queries.
 - Always, *always* `.sel` in order of increasing dimensions if you have multiple criteria on different dimensions.
 Selection is a linear time operation on all dimensions but the first, but roughly O(log n) in the first dimension because the first column of `.loc` is sorted ascending due to its lexicographical ordering (this is a class invariant).
 - Selecting values using an array criterion is slow even on the lowest dimension.
-If you can formulate your problem to avoid this you should.
+If you can formulate your problem to avoid array-based selection you should.
 
 ---
 ### `.omit(dimension, criterion)`
@@ -349,26 +349,37 @@ The possible criteria are the same as in `.sel`:
 Pro Tip: You chain `.sel` and `.omit` in a single query.
 For example, if we want all the rows with first-dimension value of 20, with second-dimension values not equal to 3, and last-dimension values in the set {1, 3, 4}:
 ```python
-a.sel(0, 20).omit(1, 3).sel(2, np.array([1, 3, 4]))
+a.sel(0, 20).omit(1, 3).sel(2, np.array([1, 3, 4])).fin()
 ```
 
 
 ---
 ### `.copy()`
 Make a deep copy of an `IndexSet`.
-All locations an associated data will be copied.
-This will sever any references that an `IndexSet` has to external references.
+All locations and associated data will be copied.
+This will sever any external references that an `IndexSet` has.
 
 
 ---
 ### `.find_loc(coord)`
 Return the position of a given row and whether or not it is contained in the object.
-```python
 
+Returns a 2-tuple containing:
+ 1. Boolean indicating whether of not the `coord` is in the `IndexSet`
+ 2. The lowest index where the coordinate would be inserted into the rows of the `IndexSet` to maintain lexicographical ordering.
+
+```python
+>>>a = bl.IndexSet(np.array([[1, 2], [3, 4]), bl.flags.NO_FLAGS)
+>>>a.find_loc((3, 4))
+(True, 1)
+>>>a.find_loc((1, 0))
+(False, 0)
 ```
 
 ---
 ### `.split(location)`
 Split into two `IndexSets` at the given position.
-```python
-```
+
+---
+### `.split_at_coord(coord)`
+Split into two `IndexSets`, the first containing all rows lexicographically lower than `coord` and the second containing all rows lexicographically greater than or equal to `coord`.
