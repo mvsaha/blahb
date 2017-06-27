@@ -18,12 +18,12 @@ __all__ = (
     'DATA_SUM', 'data_sum',
     'DATA_NANMAX', 'data_nanmax',
     'DATA_MAX', 'data_max',
-    '_BLAHB_DATA_NANMIN', 'data_nanmin',
-    '_BLAHB_DATA_MIN', 'data_min',
+    'DATA_NANMIN', 'data_nanmin',
+    'DATA_MIN', 'data_min',
     'DATA_NANFIRST', 'data_nanfirst',
     'DATA_NANLAST', 'data_nanlast',
     'DATA_DEFAULT', 'data_default',
-    'BLAHB_DATA_DEFAULT_ARRAY')
+    'DATA_DEFAULT_ARRAY')
 
 # ==========================================================================#
 # Flags used when creating IndexSets. Some of these indicate to skip
@@ -49,7 +49,7 @@ CONSUME = np.uint8(16)
 consume_ = lambda: CONSUME
 
 
-# This is commonly used
+# This is commonly used flag
 SORTED_UNIQUE = SORTED | UNIQUE
 sorted_unique = numba.njit(lambda: SORTED_UNIQUE)
 
@@ -90,13 +90,13 @@ data_max = lambda: DATA_MAX
 
 # Find the minimum non-NaN value of all contributing data. If all contributing
 # data is NaN the result is NaN.
-_BLAHB_DATA_NANMIN = np.uint8(8)
-data_nanmin = lambda: _BLAHB_DATA_NANMIN
+DATA_NANMIN = np.uint8(8)
+data_nanmin = lambda: DATA_NANMIN
 
 # Find the minimum value of all contributing data. If any of the contributing
 # data is NaN the result is NaN.
-_BLAHB_DATA_MIN = _BLAHB_DATA_NANMIN | DATA_NANS_PROPAGATE
-data_min = lambda: _BLAHB_DATA_MIN
+DATA_MIN = DATA_NANMIN | DATA_NANS_PROPAGATE
+data_min = lambda: DATA_MIN
 
 # Find the first non-Nan contributing data. If all contributing data is NaN
 # then the result is NaN.
@@ -112,6 +112,6 @@ data_nanlast = lambda: DATA_NANLAST
 DATA_DEFAULT = DATA_NANFIRST
 data_default = lambda: DATA_DEFAULT
 
-BLAHB_DATA_DEFAULT_ARRAY = np.array([DATA_DEFAULT], dtype=np.uint8)
+DATA_DEFAULT_ARRAY = np.array([DATA_DEFAULT], dtype=np.uint8)
 
 
