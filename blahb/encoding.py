@@ -18,7 +18,7 @@ dimension (column) of IndexSet.loc. If the value along a given dimension, `e`,
 is positive, this asserts that all values in that corresponding dimension are
 positive, and all are in the half-open range:
     [0, 2 ** e).
-If `e` is negative, this asserts that all of that values lie in the range:
+If `e` is negative, this asserts that all of the values lie in the range:
     [ -(2 ** abs(e)), 2 ** abs(e) )
 (and therefore requires abs(e) + 1 bits of representational power).
 

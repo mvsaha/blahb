@@ -24,16 +24,10 @@ from ...chunk import gen_cochunks
 from ...indexset import IndexSet, concat_sorted_nonoverlapping
 from ...flags import SORTED, UNIQUE
 from ...data import all_short_circuit_merges
+from ...encoding import compatible_encoding
 
-from ._intersection_contrib import (_intersection_contrib_1d,
-  _intersection_contrib_2d, _intersection_contrib_3d,
-  _intersection_contrib_4d, _intersection_contrib_Nd)
-
-from ._intersection_direct import (_intersection_direct_1d,
-  _intersection_direct_2d, _intersection_direct_3d,
-  _intersection_direct_4d, _intersection_direct_Nd)
-
-
+from .intersection_contrib import intersection_contrib_
+from .intersection_direct import intersection_direct_
 from ...data import merge_data_direct
 
 
@@ -99,18 +93,14 @@ def intersection_(a, b, MERGE=None):
     if (a.data is not None) and (b.data is not None):
         # Both data are present
         
-        if ndim == 1:
-            take_a, take_b = _intersection_contrib_1d(a.loc, b.loc)
-        elif ndim == 2:
-            take_a, take_b = _intersection_contrib_2d(a.loc, b.loc)
-        elif ndim == 3:
-            take_a, take_b = _intersection_contrib_3d(a.loc, b.loc)
-        elif ndim == 4:
-            take_a, take_b = _intersection_contrib_4d(a.loc, b.loc)
+        if compatible_encoding(a, b):
+            take_a, take_b = intersection_contrib_(
+              a._loc.view(np.uint32), b._loc.view(np.uint32))
+            c = a.take(take_a)
         else:
-            take_a, take_b = _intersection_contrib_Nd(a.loc, b.loc)
+            take_a, take_b = intersection_contrib_(a.loc, b.loc)
+            c = IndexSet(a.loc[take_a], UNIQUE | SORTED)
         
-        c = IndexSet(a.loc[take_a], UNIQUE | SORTED)
         data = a.data[take_a]
         data = merge_data_direct(b.data, take_b, data, MERGE)
         c.data = data
@@ -120,39 +110,29 @@ def intersection_(a, b, MERGE=None):
         # We should use the direct method with the smallest footprint
         if b.n < a.n:
             a, b = b, a
-        
-        if ndim == 1:
-            take_a = _intersection_direct_1d(a.loc, b.loc)
-        elif ndim == 2:
-            take_a = _intersection_direct_2d(a.loc, b.loc)
-        elif ndim == 3:
-            take_a = _intersection_direct_3d(a.loc, b.loc)
-        elif ndim == 4:
-            take_a = _intersection_direct_4d(a.loc, b.loc)
+
+        if compatible_encoding(a, b):
+            take_a, take_b = intersection_contrib_(
+              a._loc.view(np.uint32), b._loc.view(np.uint32))
+            c = a.take(take_a)
         else:
-            take_a = _intersection_direct_Nd(a.loc, b.loc)
-        
-        c = IndexSet(a.loc[take_a], UNIQUE | SORTED)
+            take_a = intersection_direct_(a.loc, b.loc)
+            c = IndexSet(a.loc[take_a], UNIQUE | SORTED)
         c._data = None
     
     else:
-        # Exactly one of a or b has data: make a the one with data
-        # Then use the direct method with a
+        # Exactly one of `a` or `b` has data: make `a` the one with data
         if b.data is not None:
             a, b = b, a  # a is now the one with data
         
-        if ndim == 1:
-            take_a = _intersection_direct_1d(a.loc, b.loc)
-        elif ndim == 2:
-            take_a = _intersection_direct_2d(a.loc, b.loc)
-        elif ndim == 3:
-            take_a = _intersection_direct_3d(a.loc, b.loc)
-        elif ndim == 4:
-            take_a = _intersection_direct_4d(a.loc, b.loc)
+        if compatible_encoding(a, b):
+            take_a = intersection_direct_(
+                a._loc.view(np.uint32), b._loc.view(np.uint32))
+            c = a.take(take_a)
         else:
-            take_a = _intersection_direct_Nd(a.loc, b.loc)
+            take_a = intersection_direct_(a.loc, b.loc)
+            c = IndexSet(a.loc[take_a], UNIQUE | SORTED)
         
-        c = IndexSet(a.loc[take_a], UNIQUE | SORTED)
         if all_short_circuit_merges(MERGE):
             c._data = None
         else:
@@ -163,6 +143,7 @@ def intersection_(a, b, MERGE=None):
                 c._data = None
             else:
                 c.data = data
+    
     return c
 
 

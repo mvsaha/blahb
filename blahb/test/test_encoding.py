@@ -17,8 +17,8 @@ def test_encoding_rand():
     for i in range(50000):
         ndim = np.random.randint(1, 10)
         size = np.random.randint(1, 1000)
-        encoding, loc = zip(*(get_random_array_encoding(size) for _ in range(ndim)))
-        encoding = np.asarray(encoding)
+        enc, loc = zip(*(get_random_array_encoding(size) for _ in range(ndim)))
+        encoding = np.asarray(enc)
         loc = np.vstack(loc).T.copy()
         result = decode(encode(loc, encoding), encoding)
         np.testing.assert_array_equal(result, loc)

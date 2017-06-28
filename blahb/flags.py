@@ -23,7 +23,7 @@ __all__ = (
     'DATA_NANFIRST', 'data_nanfirst',
     'DATA_NANLAST', 'data_nanlast',
     'DATA_DEFAULT', 'data_default',
-    'BLAHB_DATA_DEFAULT_ARRAY')
+    'DATA_DEFAULT_ARRAY')
 
 # ==========================================================================#
 # Flags used when creating IndexSets. Some of these indicate to skip
@@ -112,6 +112,6 @@ data_nanlast = lambda: DATA_NANLAST
 DATA_DEFAULT = DATA_NANFIRST
 data_default = lambda: DATA_DEFAULT
 
-BLAHB_DATA_DEFAULT_ARRAY = np.array([DATA_DEFAULT], dtype=np.uint8)
+DATA_DEFAULT_ARRAY = np.array([DATA_DEFAULT], dtype=np.uint8)
 
 

@@ -198,8 +198,8 @@ class IndexSet:
     
     def decode(self):
         if self.is_encoded:
-            e = np.asarray(self._encoding)
-            if e is not None:
+            #e = np.asarray(self._encoding)
+            if self._encoding is not None:
                 self._loc = decode(self._loc.view(np.uint32), self._encoding)
             self._encoding = None
     

@@ -108,3 +108,21 @@ def _intersection_direct_Nd(a, b):
     return take_a
 
 
+@numba.njit
+def intersection_direct_(a_loc, b_loc):
+    ndim = a_loc.shape[1]
+    assert ndim == b_loc.shape[1]
+    
+    if ndim == 1:
+        return _intersection_direct_1d(a_loc, b_loc)
+    elif ndim == 2:
+        return _intersection_direct_2d(a_loc, b_loc)
+    elif ndim == 3:
+        return _intersection_direct_3d(a_loc, b_loc)
+    elif ndim == 4:
+        return _intersection_direct_4d(a_loc, b_loc)
+    else:
+        return _intersection_direct_Nd(a_loc, b_loc)
+    
+
+

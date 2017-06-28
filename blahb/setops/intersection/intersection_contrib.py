@@ -235,3 +235,32 @@ def _intersection_contrib_Nd(a_loc, b_loc):
         b_contrib[i_b:] = False
     
     return a_contrib, b_contrib
+
+
+@numba.njit
+def intersection_contrib_(a_loc, b_loc):
+    ndim = a_loc.shape[1]
+    assert ndim == b_loc.shape[1]
+    
+    if ndim == 1:
+        return _intersection_contrib_1d(a_loc, b_loc)
+    elif ndim == 2:
+        return _intersection_contrib_2d(a_loc, b_loc)
+    elif ndim == 3:
+        return _intersection_contrib_3d(a_loc, b_loc)
+    elif ndim == 4:
+        return _intersection_contrib_4d(a_loc, b_loc)
+    else:
+        return _intersection_contrib_Nd(a_loc, b_loc)
+    
+
+
+
+
+
+
+
+
+
+
+
