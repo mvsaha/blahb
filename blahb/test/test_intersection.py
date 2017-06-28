@@ -98,7 +98,7 @@ def test_intersection_MIN():
     b =  make_indexset(            [ 4,  5,  6,  7,  8, 9, 10, 11])
     b_data = make_data(            [na, na, -2, -5, 10, na, -3,  7])
     
-    merge = np.array([_BLAHB_DATA_MIN], dtype=np.uint8)
+    merge = np.array([DATA_MIN], dtype=np.uint8)
     
     # Both a and b have no data
     c = intersection_(a, b, merge)
@@ -141,7 +141,7 @@ def test_intersection_NANMIN():
     b =  make_indexset(            [ 4,  5,  6,  7,  8, 9,  10, 11])
     b_data = make_data(            [na, na, -2, -5, 10, na, -3,  7])
     
-    merge = np.array([_BLAHB_DATA_NANMIN], dtype=np.uint8)
+    merge = np.array([DATA_NANMIN], dtype=np.uint8)
     
     # Both a and b have no data
     c = intersection_(a, b, merge)

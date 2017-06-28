@@ -15,7 +15,7 @@ After all, `IndexSet` is a `numba` `jitclass`.
 For this reason, all of the set operations listed above have two versions:
 - Regular version
   - No underscore after name (ex: `blahb.union`)
-  - Can not be called in a `nopython` block
+  - Cannot be called in a `nopython` block
   - Takes as arguments:
     - An iterable of `IndexSet` objects (`union`, `intersection`), or 
     - Two `IndexSet` objects (`symmetric_difference`, `asymmetric_difference`)
@@ -38,8 +38,17 @@ Create an `IndexSet` containing the rows found in every input.
 ## Union
 Create an `IndexSet` containing the rows found in any of the inputs.
 
+#### `union`
+#### `union_`
+
 ## Asymmetric Difference
 Create an `IndexSet` containing the rows found in the first argument that are *not* present in the second. 
 
+#### `asymmetric_difference`
+#### `asymmetric_difference_`
+
 ## Symmetric Difference
-Create `IndexSet` containing the rows that exist in exactly one of the inputs. 
+Create `IndexSet` containing the rows that exist in exactly one of the inputs.
+
+#### `symmetric_difference`
+#### `symmetric_difference_`

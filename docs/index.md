@@ -88,6 +88,7 @@ The aim of `blahb` is to provide:
 - Operators like the above `|` for efficiently manipulating comparing and combining these sets.
 - Effortless integration with both `numpy` and `numba.njit` nopython functions when you want to write your own extensions.
 
+---
 - (0) Motivation
 - [1. Getting Started](1_intro.md)
 - [2. Set Operations](2_setops.md)

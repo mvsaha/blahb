@@ -142,11 +142,11 @@ def merge_data_column_indirect(contrib, data_in, data_out, MERGE_DATA):
         #data_out[contrib] = np.add(data_in, data_out[contrib])
     elif MERGE_DATA == DATA_NANSUM:
         _merge_indirect_nansum(contrib, data_in, data_out)
-    elif MERGE_DATA == _BLAHB_DATA_MIN:
+    elif MERGE_DATA == DATA_MIN:
         _merge_indirect_min(contrib, data_in, data_out)
         # NOT equivaled to:
         #data_out[contrib] = np.minimum(data_in, data_out[contrib])
-    elif MERGE_DATA == _BLAHB_DATA_NANMIN:
+    elif MERGE_DATA == DATA_NANMIN:
         data_out[contrib] = np.fmin(data_in, data_out[contrib])
     elif MERGE_DATA == DATA_MAX:
         _merge_indirect_max(contrib, data_in, data_out)
@@ -344,9 +344,9 @@ def merge_data_column_direct(contrib, data_in, data_out, MERGE_DATA):
         np.add(data_in[contrib], data_out, data_out)
     elif MERGE_DATA == DATA_NANSUM:
         _merge_contrib_nansum(contrib, data_in, data_out)
-    elif MERGE_DATA == _BLAHB_DATA_MIN:
+    elif MERGE_DATA == DATA_MIN:
         np.minimum(data_in[contrib], data_out, data_out)
-    elif MERGE_DATA == _BLAHB_DATA_NANMIN:
+    elif MERGE_DATA == DATA_NANMIN:
         np.fmin(data_in[contrib], data_out, data_out)
     elif MERGE_DATA == DATA_MAX:
         np.maximum(data_in[contrib], data_out, data_out)
@@ -379,13 +379,12 @@ def merge_data_direct(data_in, contrib, existing_data=None, MERGE_ACTION=None):
         equal to the number of True values in contrib.
     MERGE_ACTION : [None] | 1d uint8 array
         The kind of merge to do on each column of existing_data to
-        combine it with data_int. This will raise an error. See the
-        definitions in numblahb.bits. The default when None is given
-        is to keep the first non-NaN value in each position
-        (_BLAHB_DATA_FIRST). If an array with a single value is passed in then
-        it will be applied to all columns of the data_in. Due to typing
-        restrictions this argument must be an array, it cannot be a scalar
-        (uint8 or otherwise).
+        combine it with data_int. See the definitions in blahb.flags.
+        The default when None is given is to keep the first non-NaN value in
+        each position (_BLAHB_DATA_FIRST). If an array with a single value
+        is passed in then it will be applied to all columns of the data_in.
+        Due to typing restrictions this argument must be an array, it cannot
+        be a scalar (uint8 or otherwise).
     
     Returns
     -------
@@ -417,8 +416,8 @@ def merge_data_direct(data_in, contrib, existing_data=None, MERGE_ACTION=None):
                     if M & DATA_NANS_PROPAGATE:
                         existing_data[:, col] = np.nan
             else:
-                raise ValueError("Number of elements in MERGE do not match"
-                                 "the dimensionality of input PixelSets.")
+                raise ValueError("Number of elements in MERGE does not match"
+                                 " the dimensionality of input PixelSets.")
             return existing_data
         else:
             return None

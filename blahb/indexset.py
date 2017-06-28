@@ -80,9 +80,7 @@ class IndexSet:
         class invariants and essentially every computation you do will be
         incorrect if these invariants are violated.
         
-        Raises
-        ------
-        TypingError : if loc.dtype is not int32
+        If necessary, the dytpe of `loc` will be converted to int32
         """
         if not loc.ndim == 2:
             raise ValueError('`loc` must be 2 dimensional.')
@@ -258,7 +256,7 @@ class IndexSet:
             coords = self.loc[:, dim]
             start = exponential_search(coords, c, start, stop)
             stop = exponential_search(coords, c + 1, start, stop)
-            if c != coords[start]:
+            if start == stop or c != coords[start]:
                 return False, start
         return True, start
     

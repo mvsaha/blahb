@@ -66,10 +66,10 @@ def intersection_(a, b, MERGE=None):
     * 5 DATA_MAX
         Take the maximum datum at each location, propagating NaNs. If any
         contributing data are NaN, then the result is NaN
-    * 6 _BLAHB_DATA_NANMIN
+    * 6 DATA_NANMIN
         Take the minimum contributing datum for each location, ignoring
         NaN values. If all contributors are NaN, the result is NaN.
-    * 7 _BLAHB_DATA_MIN
+    * 7 DATA_MIN
         Take the minimum datum at each location, propagating NaNs. If any
         contributing data are NaN, then the result is NaN
     * 8 DATA_NANFIRST
