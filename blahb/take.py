@@ -27,12 +27,13 @@ def take_range(indexset, where):
 @numba.njit
 def take_with_ints(indexset, where):
     """Take a from an IndexSet with a sorted, unique_ array of locations.
-
+    
     Arguments
     ---------
     indexset : IndexSet instance
     locations : 1d array of ints
-        The locations of coordinates to take. This must be sorted and unique_.
+        The locations of coordinates to take. The indices must be sorted and
+        and unique.
     
     Returns
     -------

@@ -8,6 +8,7 @@ from ..settings import parse_chunk_args
 from ..chunk import gen_cochunks
 from ..utils import enlarge_array
 from ..utils import lex_less_Nd, eq_Nd
+from ..encoding import compatible_encoding
 
 
 @numba.njit
@@ -408,6 +409,21 @@ def put_a_if_true_else_put_b(a, b, tf, put):
 
 
 @numba.njit(nogil=True)
+def sdiff_helper(a_loc, b_loc):
+    ndim = a_loc.shape[1]
+    if ndim == 1:
+        return _symmetric_difference_1d(a_loc, b_loc)
+    elif ndim == 2:
+        return _symmetric_difference_2d(a_loc, b_loc)
+    elif ndim == 3:
+        return _symmetric_difference_3d(a_loc, b_loc)
+    elif ndim == 4:
+        return _symmetric_difference_4d(a_loc, b_loc)
+    else:
+        return _symmetric_difference_Nd(a_loc, b_loc)
+
+
+@numba.njit(nogil=True)
 def symmetric_difference_(a, b):
     """Find the symmetric difference of two IndexSets.
     
@@ -430,21 +446,23 @@ def symmetric_difference_(a, b):
     overlapping. Data from `a` goes to the `a` locations of the result and
     data from `b` goes to the `b` locations.
     """
-    ndim = a.ndim
-    if ndim == 1:
-        a_take, b_take, contrib = _symmetric_difference_1d(a.loc, b.loc)
-    elif ndim == 2:
-        a_take, b_take, contrib = _symmetric_difference_2d(a.loc, b.loc)
-    elif ndim == 3:
-        a_take, b_take, contrib = _symmetric_difference_3d(a.loc, b.loc)
-    elif ndim == 4:
-        a_take, b_take, contrib = _symmetric_difference_4d(a.loc, b.loc)
-    else:
-        a_take, b_take, contrib = _symmetric_difference_Nd(a.loc, b.loc)
     
-    c_loc = np.empty((contrib.size, ndim), dtype=a.loc.dtype)
-    put_a_if_true_else_put_b(a.loc[a_take], b.loc[b_take], contrib, c_loc)
-    c = IndexSet(c_loc, SORTED | UNIQUE)
+    ndim = a.ndim
+    
+    if compatible_encoding(a, b):
+        a_loc = a._loc.view(np.uint32)
+        b_loc = b._loc.view(np.uint32)
+        a_take, b_take, contrib = sdiff_helper(a_loc, b_loc)
+        
+        temp = np.empty((contrib.size, a._loc.shape[1]), dtype=np.uint32)
+        put_a_if_true_else_put_b(a_loc[a_take], b_loc[b_take], contrib, temp)
+        c = IndexSet(temp.view(np.int32), SORTED | UNIQUE)
+        
+    else:
+        a_take, b_take, contrib = sdiff_helper(a.loc, b.loc)
+        temp2 = np.empty((contrib.size, ndim), dtype=a.loc.dtype)
+        put_a_if_true_else_put_b(a.loc[a_take], b.loc[b_take], contrib, temp2)
+        c = IndexSet(temp2, SORTED | UNIQUE)
     
     if a.data is None and b.data is None:
         c._data = None

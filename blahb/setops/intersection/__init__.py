@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 from ...settings import parse_chunk_args
 from ...chunk import gen_cochunks
 from ...indexset import IndexSet, concat_sorted_nonoverlapping
-from ...flags import SORTED, UNIQUE
+from ...flags import SORTED, UNIQUE, DATA_DEFAULT
 from ...data import all_short_circuit_merges
 from ...encoding import compatible_encoding
 
@@ -86,6 +86,9 @@ def intersection_(a, b, MERGE=None):
         return a
     elif b.is_empty:
         return b
+    
+    if MERGE is None:
+        MERGE = np.array([DATA_DEFAULT], dtype=np.uint8)
     
     ndim = a.ndim
     assert ndim == b.ndim

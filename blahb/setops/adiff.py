@@ -8,7 +8,7 @@ from ..chunk import gen_cochunks
 from ..indexset import IndexSet, concat_sorted_nonoverlapping
 from ..indexset import is_indexset_subclass
 from ..utils import lex_less_Nd, eq_Nd
-
+from ..encoding import compatible_encoding
 
 @numba.njit
 def _asymmetric_difference_1d(a, b):
@@ -137,6 +137,21 @@ def _asymmetric_difference_Nd(a, b):
 
 
 @numba.njit(nogil=True)
+def _adiff_helper(a_loc, b_loc):
+    ndim = a_loc.shape[1]
+    if ndim == 1:
+        return _asymmetric_difference_1d(a_loc, b_loc)
+    elif ndim == 2:
+        return _asymmetric_difference_2d(a_loc, b_loc)
+    elif ndim == 3:
+        return _asymmetric_difference_3d(a_loc, b_loc)
+    elif ndim == 4:
+        return _asymmetric_difference_4d(a_loc, b_loc)
+    else:
+        return _asymmetric_difference_Nd(a_loc, b_loc)
+    
+
+@numba.njit(nogil=True)
 def asymmetric_difference_(a, b):
     """Return the locations in a that are not in b.
     
@@ -155,17 +170,14 @@ def asymmetric_difference_(a, b):
         return a
     ndim = a.ndim
     
-    if ndim == 1:
-        take_a =_asymmetric_difference_1d(a.loc, b.loc)
-    elif ndim == 2:
-        take_a = _asymmetric_difference_2d(a.loc, b.loc)
-    elif ndim == 3:
-        take_a = _asymmetric_difference_3d(a.loc, b.loc)
-    elif ndim == 4:
-        take_a = _asymmetric_difference_4d(a.loc, b.loc)
+    if compatible_encoding(a, b):
+        take_a = _adiff_helper(a._loc.view(np.uint32), a._loc.view(np.uint32))
+        temp = a._loc[take_a]
+        c = IndexSet(temp.astype(np.int32), SORTED | UNIQUE)
     else:
-        take_a = _asymmetric_difference_Nd(a.loc, b.loc)
-    c = IndexSet(a.loc[take_a], UNIQUE | SORTED)
+        take_a = _adiff_helper(a.loc, b.loc)
+        c = a.take(take_a)
+    
     if a.data is not None:
         c.data = a.data[take_a]
     else:

@@ -7,18 +7,14 @@ from ...settings import parse_chunk_args
 from ...chunk import gen_cochunks
 from ...data import merge_data_direct, merge_data_indirect
 from ...data import all_short_circuit_merges, order_does_not_matter
-from ...flags import *
-
-from ._union_big_small import (_union_big_small_1d, _union_big_small_2d,
-    _union_big_small_3d, _union_big_small_4d, _union_big_small_Nd,
-    merge_union_big_small_results)
-
-from ._union_contrib import (_union_contrib_1d, _union_contrib_2d,
-    _union_contrib_3d, _union_contrib_4d, _union_contrib_Nd)
+from ...flags import DATA_DEFAULT, SORTED, UNIQUE
+from ...encoding import compatible_encoding
+from .union_big_small import union_big_small_, merge_union_big_small_results
+from .union_contrib import union_contrib_
 
 
 @numba.njit(nogil=True)
-def union_(a, b, MERGE):
+def union_(a, b, MERGE=None):
     """Perform set union on two IndexSets
     
     Arguments
@@ -69,35 +65,35 @@ def union_(a, b, MERGE):
     """
     ndim = a.ndim
     
+    if MERGE is None:
+        MERGE = np.array([DATA_DEFAULT], dtype=np.uint8)
+    
     if a.data is None and b.data is None:
         if b.n > a.n:  # Neither has data so order does not matter
             a, b = b, a
-        
-        if ndim == 1:
-            big, small = _union_big_small_1d(a.loc, b.loc)
-        elif ndim == 2:
-            big, small = _union_big_small_2d(a.loc, b.loc)
-        elif ndim == 3:
-            big, small = _union_big_small_3d(a.loc, b.loc)
-        elif ndim == 4:
-            big, small = _union_big_small_4d(a.loc, b.loc)
+
+        if compatible_encoding(a, b):
+            a_loc, b_loc = a._loc.view(np.uint32), b._loc.view(np.uint32)
+            big, small = union_big_small_(a_loc, b_loc)
+            temp = np.empty((big.size, a_loc.shape[1]), dtype=a_loc.dtype)
+            merge_union_big_small_results(a_loc, b_loc, big, small, temp)
+            c = IndexSet(temp.view(np.int32), SORTED | UNIQUE)
+            c._encoding = a._encoding
+            
         else:
-            big, small = _union_big_small_Nd(a.loc, b.loc)
-        
-        _c = merge_union_big_small_results(a.loc, b.loc, big, small)
-        c = IndexSet(_c, SORTED | UNIQUE)
+            big, small = union_big_small_(a.loc, b.loc)
+            temp2 = merge_union_big_small_results(a.loc, b.loc, big, small)
+            c = IndexSet(temp2, SORTED | UNIQUE)
     
     elif (a.data is not None) and (b.data is not None):
-        if ndim == 1:
-            give_a, give_b = _union_contrib_1d(a.loc, b.loc)
-        elif ndim == 2:
-            give_a, give_b = _union_contrib_2d(a.loc, b.loc)
-        elif ndim == 3:
-            give_a, give_b = _union_contrib_3d(a.loc, b.loc)
-        elif ndim == 4:
-            give_a, give_b = _union_contrib_4d(a.loc, b.loc)
+        
+        
+        if compatible_encoding(a, b):
+            #a_loc, b_loc = a._loc.view(np.uint32), b._loc.view(np.uint32)
+            give_a, give_b = union_contrib_(a_loc, b_loc)
+        
         else:
-            give_a, give_b = _union_contrib_Nd(a.loc, b.loc)
+            give_a, give_b = union_contrib_(a.loc, b.loc)
         
         _c = np.empty((give_a.size, ndim), dtype=np.int32)
         _c[give_a] = a.loc
@@ -111,20 +107,19 @@ def union_(a, b, MERGE):
         if a.data is None:
             a, b = b, a  # Now a is the one with data
         
-        if ndim == 1:
-            big, small = _union_big_small_1d(a.loc, b.loc)
-        elif ndim == 2:
-            big, small = _union_big_small_2d(a.loc, b.loc)
-        elif ndim == 3:
-            big, small = _union_big_small_3d(a.loc, b.loc)
-        elif ndim == 4:
-            big, small = _union_big_small_4d(a.loc, b.loc)
-        else:
-            big, small = _union_big_small_Nd(a.loc, b.loc)
+        if compatible_encoding(a, b):
+            a_loc, b_loc = a._loc.view(np.uint32), b._loc.view(np.uint32)
+            big, small = union_big_small_(a_loc, b_loc)
+            temp = np.empty((big.size, a_loc.shape[1]), dtype=a_loc.dtype)
+            merge_union_big_small_results(a_loc, b_loc, big, small, temp)
+            c = IndexSet(temp.view(np.int32), SORTED | UNIQUE)
+            c._encoding = a._encoding
         
-        _c = merge_union_big_small_results(a.loc, b.loc, big, small)
-        c = IndexSet(_c, SORTED | UNIQUE)
-
+        else:
+            big, small = union_big_small_(a.loc, b.loc)
+            temp2 = merge_union_big_small_results(a.loc, b.loc, big, small)
+            c = IndexSet(temp2, SORTED | UNIQUE)
+        
         if all_short_circuit_merges(MERGE):
             c._data = None
         else:
@@ -138,7 +133,7 @@ def union_(a, b, MERGE):
             data = merge_data_direct(b.data, small, data, MERGE)
             c.data = data
     
-    # TODO: We can know the bounds here to give to `c` if it is big enough
+    # TODO: We can know the bounds here to give to `c`
     return c
 
 

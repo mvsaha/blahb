@@ -290,6 +290,7 @@ def _union_big_small_Nd(a, b):
         big[n:n + n_b_left] = False
         n = n + n_b_left
         small[ib:] = True
+    
     # Invariants:
     # assert np.sum(~big[:n]) == np.sum(small)
     # assert np.sum(big[:n]) == na
@@ -297,23 +298,44 @@ def _union_big_small_Nd(a, b):
     return big[:n], small
 
 
+@numba.njit
+def union_big_small_(a_loc, b_loc):
+    ndim = a_loc.shape[1]
+    assert ndim == b_loc.shape[1]
+    
+    if ndim == 1:
+        return _union_big_small_1d(a_loc, b_loc)
+    elif ndim == 2:
+        return _union_big_small_2d(a_loc, b_loc)
+    elif ndim == 3:
+        return _union_big_small_3d(a_loc, b_loc)
+    elif ndim == 4:
+        return _union_big_small_4d(a_loc, b_loc)
+    else:
+        return _union_big_small_Nd(a_loc, b_loc)
+
+
+
 @numba.njit(nogil=True)
-def merge_union_big_small_results(a, b, big, small):
+def merge_union_big_small_results(a_loc, b_loc, big, small, out=None):
     n_total = big.size
-    ndim = a.shape[1]
+    ndim = a_loc.shape[1]
+    assert ndim == b_loc.shape[1]
     
-    if not ndim == b.shape[1]:
-        raise ValueError("a.ncol and b.ncol do not match.")
+    if out is None:
+        together = np.empty((n_total, ndim), a_loc.dtype)
+    else:
+        together = out
     
-    together = np.empty((n_total, ndim), a.dtype)
-    together[big] = a
+    together[big] = a_loc
     i_small = 0
     for i_big in range(n_total):
         if not big[i_big]:
             while not small[i_small]:
                 i_small += 1
             for dim in range(ndim):
-                together[i_big, dim] = b[i_small, dim]
+                together[i_big, dim] = b_loc[i_small, dim]
             i_small += 1
     return together
+
 

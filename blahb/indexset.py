@@ -41,7 +41,7 @@ class IndexSet:
     
     This is a numba jitclass and can be used in nopython functions.
     """
-    def __init__(self, loc, FLAGS):
+    def __init__(self, loc, FLAGS=NO_FLAGS):
         """Initialize an IndexSet with locations.
         
         Arguments
@@ -223,8 +223,10 @@ class IndexSet:
             raise ValueError("IndexSet is already encoded.")
         if not encoding.size == self.ndim:
             raise ValueError("Length of encoding must match number of dims.")
-        self._loc = encode(self._loc, encoding).view(np.int32)
-        self._encoding = encoding
+        
+        _encoding = encoding.astype(np.int8)
+        self._loc = encode(self._loc, _encoding).view(np.int32)
+        self._encoding = _encoding
     
     def find_loc(self, coord):
         """Locate a coordinate in this IndexSet

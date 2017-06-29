@@ -73,6 +73,7 @@ def _union_contrib_1d(a, b):
     if sz > a_contrib.size:
         a_contrib = enlarge_array(a_contrib, sz)
         b_contrib = enlarge_array(b_contrib, sz)
+    
     a_contrib[n_c:sz] = False
     b_contrib[n_c:sz] = True
     
@@ -415,3 +416,20 @@ def _union_contrib_Nd(a_loc, b_loc):
     b_contrib[n_c:sz] = True
     
     return a_contrib[:sz], b_contrib[:sz]
+
+
+@numba.njit
+def union_contrib_(a_loc, b_loc):
+    ndim = a_loc.shape[1]
+    assert ndim == b_loc.shape[1]
+    
+    if ndim == 1:
+        return _union_contrib_1d(a_loc, b_loc)
+    elif ndim == 2:
+        return _union_contrib_2d(a_loc, b_loc)
+    elif ndim == 3:
+        return _union_contrib_3d(a_loc, b_loc)
+    elif ndim == 4:
+        return _union_contrib_4d(a_loc, b_loc)
+    else:
+        return _union_contrib_Nd(a_loc, b_loc)
