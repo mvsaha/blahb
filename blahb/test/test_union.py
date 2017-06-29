@@ -360,12 +360,21 @@ def test_union_randomized():
     for ndim in range(1, 6):
         for _ in range(N_TESTS * 5):
             nx, ny = np.random.randint(1, 2**ndim, size=2)
-            x = np.random.randint(0, 3, (nx, ndim), dtype=np.int32)
-            y = np.random.randint(0, 3, (ny, ndim), dtype=np.int32)
+            lo, hi = -2, 3
+            n_bits = int(np.ceil(np.log2( max(abs(lo), abs(hi)) )))
+            x = np.random.randint(lo, hi, (nx, ndim), dtype=np.int32)
+            y = np.random.randint(lo, hi, (ny, ndim), dtype=np.int32)
             a = IndexSet(x, NO_FLAGS)
             b = IndexSet(y, NO_FLAGS)
-            ref = to_set(a) | to_set(b)
+            
+            use_encoding = np.random.randint(0, 2)
+            if use_encoding:
+                enc = np.array([n_bits] * ndim) * (-1 if lo < 0 else 1)
+                a.encode(enc)
+                b.encode(enc)
+            
             c = union_(a, b, None)
+            ref = to_set(a) | to_set(b)
             result = to_set(c)
             assert ref == result
             assert len(result) == c.loc.shape[0]

@@ -221,10 +221,10 @@ class IndexSet:
         """
         if self.is_encoded:
             raise ValueError("IndexSet is already encoded.")
-        if not encoding.size == self.ndim:
-            raise ValueError("Length of encoding must match number of dims.")
-        
+
         _encoding = encoding.astype(np.int8)
+        if not _encoding.size == self.ndim:
+            raise ValueError("Length of encoding must match number of dims.")
         self._loc = encode(self._loc, _encoding).view(np.int32)
         self._encoding = _encoding
     

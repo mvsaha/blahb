@@ -14,14 +14,14 @@ def T(x):
         return x.T
 
 
-def _to_set(_loc):
+def _to_set(loc):
     """Convert an array of locations into a set of tuple locations."""
-    return set(map(tuple, _loc))
+    return set(map(tuple, loc))
 
 
 def to_set(indexset):
     """Convert an IndexSet into a set of tuple locations."""
-    return _to_set(indexset._loc)
+    return _to_set(indexset.loc)
 
 
 def to_dict(indexset):

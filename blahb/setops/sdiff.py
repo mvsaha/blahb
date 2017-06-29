@@ -457,6 +457,7 @@ def symmetric_difference_(a, b):
         temp = np.empty((contrib.size, a._loc.shape[1]), dtype=np.uint32)
         put_a_if_true_else_put_b(a_loc[a_take], b_loc[b_take], contrib, temp)
         c = IndexSet(temp.view(np.int32), SORTED | UNIQUE)
+        c._encoding = a.encoding
         
     else:
         a_take, b_take, contrib = sdiff_helper(a.loc, b.loc)

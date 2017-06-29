@@ -149,7 +149,7 @@ def _adiff_helper(a_loc, b_loc):
         return _asymmetric_difference_4d(a_loc, b_loc)
     else:
         return _asymmetric_difference_Nd(a_loc, b_loc)
-    
+
 
 @numba.njit(nogil=True)
 def asymmetric_difference_(a, b):
@@ -168,12 +168,13 @@ def asymmetric_difference_(a, b):
     """
     if a.n == 0:
         return a
-    ndim = a.ndim
     
     if compatible_encoding(a, b):
-        take_a = _adiff_helper(a._loc.view(np.uint32), a._loc.view(np.uint32))
+        take_a = _adiff_helper(a._loc.view(np.uint32), b._loc.view(np.uint32))
+        print('take_a', take_a[0], take_a[1], take_a[2])
         temp = a._loc[take_a]
         c = IndexSet(temp.astype(np.int32), SORTED | UNIQUE)
+        c._encoding = a.encoding
     else:
         take_a = _adiff_helper(a.loc, b.loc)
         c = a.take(take_a)
