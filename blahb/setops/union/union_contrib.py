@@ -418,7 +418,7 @@ def _union_contrib_Nd(a_loc, b_loc):
     return a_contrib[:sz], b_contrib[:sz]
 
 
-@numba.njit
+@numba.njit(cache=True)
 def union_contrib_(a_loc, b_loc):
     ndim = a_loc.shape[1]
     assert ndim == b_loc.shape[1]

@@ -63,6 +63,17 @@ def bits_required(lo, hi):
     
     return n_bits
 
+@numba.njit
+def bit_code(lo, hi):
+    """Return the encoding value that is needed to represent a range of values.
+    
+    These should be used as the integer values for the encoding array passed
+    into IndexSet.encode().
+    """
+    b = bits_required(lo, hi)
+    if lo < 0 or hi < 0:  # Need a negative representation
+        return -(b - 1)
+    return b
 
 @numba.njit
 def min_encoded_value(n_bits):
@@ -341,10 +352,25 @@ def compatible_encoding(a, b):
       a.encoding.size != b.encoding.size):
         return False
     
-    a_enc = a.encoding.view(np.uint8)
-    b_enc = b.encoding.view(np.uint8)
+    a_enc = a.encoding.view(np.int8)
+    b_enc = b.encoding.view(np.int8)
     for i in range(a_enc.size):
         if a_enc[i] != b_enc[i]:
             return False
     return True
-    
+
+
+@numba.njit
+def same_encoding(a, b):
+    if a.encoding is None and b.encoding is None:
+        return True
+    elif a.encoding is None or b.encoding is None:
+        return False
+    else:
+        if not a.encoding.size == b.encoding.size:
+            return False
+        
+        for i in range(a.encoding.size):
+            if a.encoding[i] != b.encoding[i]:
+                return False
+        return True

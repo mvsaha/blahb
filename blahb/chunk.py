@@ -2,6 +2,7 @@
 Breaking up an IndexSet into smaller pieces.
 """
 
+from .encoding import same_encoding
 from .settings import parse_chunk_args
 
 
@@ -60,22 +61,29 @@ def gen_cochunks(objs, filter_chunk=None, filter_group=None, **chunk_args):
     # If no filter functions are provided...
     filter_chunk = filter_chunk or (lambda x: True)
     filter_group = filter_group or (lambda x: True)
-    take_max = lambda o: o.loc[chunk_sz - 1]
+    take_max = lambda o: o.take(chunk_sz - 1).loc[0]
     
     while len(objs):  # Some coordinates left in the fixed_pixelsets
         temp = []
         to_yield = []
         
         if any(o.n >= chunk_sz for o in objs):
+            
             # sz = min(max(o.n for o in objs), max_chunk_size)
+            
             large_objs = (o for o in objs if o.n >= chunk_sz)
             coords = map(take_max, (o for o in large_objs))
             coords = map(tuple, coords)
+            
             split_coord = min(coords)
+            
             for o in objs:
+                
                 taken, left = o.split_at_coord(split_coord, True)
+                
                 if filter_chunk(taken):
                     to_yield.append(taken)
+                
                 temp.append(left)
         
         else:  # The final yield

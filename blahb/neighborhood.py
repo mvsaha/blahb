@@ -8,7 +8,7 @@ from .utils import searchsorted
 from .label import build_label_func, finalize_labels, merge_chunked_labels
 from .utils import repeat
 from .indexset import IndexSet
-from .multiblob import MultiBlob
+#from .multiblob import MultiBlob
 
 from .setops import union
 from .flags import *
@@ -45,7 +45,16 @@ class _BaseNeighborhood:
         _base_neighborhoods[offsets] = self
     
     @property
+    def ndim(self):
+        return self._struct_el.ndim
+    
+    @property
     def cc_neighbors(self):
+        """Generate the offsets around a central pixel in rotational order."""
+        if self.ndim != 2:
+            raise ValueError(
+                "'Counter-clockwise' is only defined for 2d neighborhoods.")
+        
         if self._cc_neighbors is None:
             # Exclude the central pixel
             offsets = list(i for i in zip(*self._offsets) if i != (0, 0))
@@ -309,7 +318,7 @@ class Neighborhood:
             loc = indexset.loc.copy()
             loc += neighs
             to_combine.append(IndexSet(loc, SORTED_UNIQUE))
-    
+        
         new = union(to_combine, MERGE=None, **chunk_args)
     
         MERGE = np.array([DATA_NANFIRST], dtype=np.uint8)
@@ -378,10 +387,10 @@ class Neighborhood:
         finalize_labels(labels)
         return labels
     
-    def multiblob(self, indexset, **chunk_args):
-        """Create a MultiBlob by labeling an IndexSet."""
-        labels = self.label(indexset, **chunk_args)
-        result = MultiBlob(indexset.loc, labels)
-        result._data = indexset.data
-        return result
+    # def multiblob(self, indexset, **chunk_args):
+    #     """Create a MultiBlob by labeling an IndexSet."""
+    #     labels = self.label(indexset, **chunk_args)
+    #     result = MultiBlob(indexset.loc, labels)
+    #     result._data = indexset.data
+    #     return result
         

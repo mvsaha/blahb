@@ -8,7 +8,7 @@ from ...chunk import gen_cochunks
 from ...data import merge_data_direct, merge_data_indirect
 from ...data import all_short_circuit_merges, order_does_not_matter
 from ...flags import DATA_DEFAULT, SORTED, UNIQUE
-from ...encoding import compatible_encoding
+from ...encoding import compatible_encoding, same_encoding
 from .union_big_small import union_big_small_, merge_union_big_small_results
 from .union_contrib import union_contrib_
 
@@ -73,55 +73,67 @@ def union_(a, b, MERGE=None):
             a, b = b, a
 
         if compatible_encoding(a, b):
+            #print('union 1 a')
             a_loc, b_loc = a._loc.view(np.uint32), b._loc.view(np.uint32)
             big, small = union_big_small_(a_loc, b_loc)
             temp = np.empty((big.size, a_loc.shape[1]), dtype=a_loc.dtype)
             merge_union_big_small_results(a_loc, b_loc, big, small, temp)
             c = IndexSet(temp.view(np.int32), SORTED | UNIQUE)
             c._encoding = a._encoding
-            
+        
         else:
+            #print('union 1 b')
             big, small = union_big_small_(a.loc, b.loc)
             temp2 = merge_union_big_small_results(a.loc, b.loc, big, small)
             c = IndexSet(temp2, SORTED | UNIQUE)
     
     elif (a.data is not None) and (b.data is not None):
         
-        
         if compatible_encoding(a, b):
-            #a_loc, b_loc = a._loc.view(np.uint32), b._loc.view(np.uint32)
+            #print('union 2 a')
+            a_loc, b_loc = a._loc.view(np.uint32), b._loc.view(np.uint32)
+            ndim = a_loc.shape[1]
             give_a, give_b = union_contrib_(a_loc, b_loc)
+            enc = a.encoding
         
         else:
+            #print('union 2 b')
             give_a, give_b = union_contrib_(a.loc, b.loc)
+            enc = None
         
         _c = np.empty((give_a.size, ndim), dtype=np.int32)
-        _c[give_a] = a.loc
-        _c[give_b] = b.loc
+        _c[give_a] = a._loc
+        _c[give_b] = b._loc
         c = IndexSet(_c, SORTED | UNIQUE)
+        c._encoding = enc
+        
         data = merge_data_indirect(a.data, give_a, None, MERGE)
         data = merge_data_indirect(b.data, give_b, data, MERGE)
         c.data = data
     
     else:  # Exactly one of {`a`, `b`} have associated data
+        
         if a.data is None:
             a, b = b, a  # Now a is the one with data
         
         if compatible_encoding(a, b):
+            #print('union 3 a')
             a_loc, b_loc = a._loc.view(np.uint32), b._loc.view(np.uint32)
             big, small = union_big_small_(a_loc, b_loc)
             temp = np.empty((big.size, a_loc.shape[1]), dtype=a_loc.dtype)
             merge_union_big_small_results(a_loc, b_loc, big, small, temp)
             c = IndexSet(temp.view(np.int32), SORTED | UNIQUE)
-            c._encoding = a._encoding
+            c._encoding = a.encoding
         
         else:
+            #print('union 3 b')
             big, small = union_big_small_(a.loc, b.loc)
             temp2 = merge_union_big_small_results(a.loc, b.loc, big, small)
             c = IndexSet(temp2, SORTED | UNIQUE)
         
         if all_short_circuit_merges(MERGE):
             c._data = None
+        
         else:
             if not b.data is None:
                 raise ValueError('b.data should be None')
@@ -242,11 +254,15 @@ def union(objs, MERGE=None, **chunk_args):
         return union_fn(objs)
     
     filter_chunk = lambda x: x.n > 0
-    _gen = gen_cochunks(objs, filter_chunk=filter_chunk, **chunk_args)
-    if n_workers == 1:  # Chunk but do not use threads
-        indexsets = tuple(map(union_fn, _gen))
-    else:  # Chunk but do not use threads
-        with ThreadPoolExecutor(max_workers=n_workers) as thread_pool:
-            indexsets = tuple(thread_pool.map(union_fn, _gen))
+    gen = gen_cochunks(objs, filter_chunk=filter_chunk, **chunk_args)
     
-    return concat_sorted_nonoverlapping(indexsets)
+    if n_workers == 1:  # Chunk but do not use threads
+        indexsets = tuple(map(union_fn, gen))
+    
+    else:
+        with ThreadPoolExecutor(max_workers=n_workers) as thread_pool:
+            indexsets = tuple(thread_pool.map(union_fn, gen))
+    
+    ret = concat_sorted_nonoverlapping(indexsets)
+    return ret
+    

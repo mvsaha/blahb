@@ -5,22 +5,37 @@ Selecting locations in a IndexSet based on their sorted location.
 import numba
 from .flags import *
 from .indexset import IndexSet
+from .encoding import same_encoding
 
 
 @numba.njit
 def take_with_slice(indexset, where):
     """Take from an IndexSet between a start and stop location."""
-    return IndexSet(indexset.loc[where], SORTED | UNIQUE)
+    
+    ret = IndexSet(indexset._loc[where], SORTED_UNIQUE)
+    ret._encoding = indexset._encoding
+    
+    if indexset.data is not None:
+        ret._data = indexset.data[where]
+    
+    if not same_encoding(indexset, ret):
+        raise AssertionError('Result encoding differs in `take_range`')
+    
+    return ret
 
 
 @numba.njit
 def take_range(indexset, where):
     """Take from an IndexSet between a start and stop location."""
     loc = indexset._loc[where[0]:where[1]]
-    ret = IndexSet(loc, SORTED | UNIQUE)
+    ret = IndexSet(loc, SORTED_UNIQUE)
     ret._encoding = indexset._encoding
+    
     if indexset.data is not None:
         ret._data = indexset.data[where[0]:where[1]]
+    
+    if not same_encoding(indexset, ret):
+        raise AssertionError('Result encoding differs in `take_range`')
     return ret
 
 

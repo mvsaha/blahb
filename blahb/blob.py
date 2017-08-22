@@ -6,7 +6,7 @@ from .take import take_
 
 
 @numba.njit(nogil=True)
-def blobs_(multiblob):
+def blobs_(indexset, labels):
     """Generate contiguous features from a labeled MultiBlob.
     
     Arguments
@@ -18,13 +18,13 @@ def blobs_(multiblob):
     ------
     IndexSet instances with the contiguity defined in `multiblob`.
     """
-    labels = multiblob.labels.copy()
+    #labels = multiblob.labels.copy()
     sort_order = timsort_(labels)  # Sorts labels too
     start = 0
     start_label = labels[start]
     for i in range(labels.size):
         if labels[i] != start_label:
-            yield take_(multiblob, sort_order[start:i])
+            yield take_(indexset, sort_order[start:i])
             start = i
             start_label = labels[i]
-    yield take_(multiblob, sort_order[start:])
+    yield take_(indexset, sort_order[start:])

@@ -10,12 +10,12 @@ from collections import OrderedDict
 # from .take import take_
 # from .sel_result import SelResult_
 
-from .encoding import decode, encode
+from .encoding import decode, encode, same_encoding
 from .lexsort import lexsort_inplace
 from .unique import _unique_locations_in_sorted
-from .utils import exponential_search, lex_less_Nd, eq_Nd
+from .utils import exponential_search, lex_less_Nd, eq_Nd, to_array
 from .flags import *
-
+from .border import border2d_
 
 # For indexsets with less elements that this we will not cache bounds
 _bounds_threshold = 32
@@ -84,13 +84,14 @@ class IndexSet:
         """
         if not loc.ndim == 2:
             raise ValueError('`loc` must be 2 dimensional.')
+        
         self._sort_order = None
         
         if (FLAGS & COPY) and (FLAGS & CONSUME):
             raise ValueError("copy_ and consume_ cannot "
                              "both be set together.")
         
-        if (FLAGS & SORTED) & (FLAGS & UNIQUE):
+        if (FLAGS & SORTED) and (FLAGS & UNIQUE):
             if FLAGS & COPY:
                 loc = loc.copy()
         
@@ -111,7 +112,7 @@ class IndexSet:
             loc = loc[_uniq_loc, :]
         
         self._ndim = loc.shape[1]
-        self._loc = loc.astype(np.int32)
+        self._loc = loc  #.astype(np.int32) #convert_to_int32(loc)
         self._encoding = None
     
     # Properties
@@ -166,12 +167,17 @@ class IndexSet:
     
     @property
     def ndim(self):
-        return np.int64(self._ndim)
+        if self.is_encoded:
+            return self.encoding.size
+        else:
+            return self._loc.shape[1]
     
     @property
     def loc(self):
         """Return the matrix of locations that, decoding if necessary."""
         if self.is_encoded:
+            if self.n > 10000:
+                print('decoding', self.n)
             return decode(self._loc.view(np.uint32),
                           self._encoding.view(np.int8))
         else:
@@ -187,6 +193,52 @@ class IndexSet:
     
     # Methods
     
+    def border(self, neighbors, pad):
+        """ Find the border pixels of a 2d blob given a neighborhood.
+        
+        Arguments
+        ---------
+        neighbors : array, array
+            y and x coordinates of neighbor offsets, in rotational order as
+            provided by `blahb.Neighborhood.cc_neighbors`
+        pad : int, int
+            The result of `Neighborhood.ranges` for the same Neighborhood as
+            `neighbors`. Specifies the padding needed when creating an
+             IndexSet image.
+        
+        Returns
+        -------
+        (y, x) : Two arrays of coordinates containing the border pixels in
+        counter-clockwise order. The first and last coordinates are identical.
+        Depending on the neighborhood, some coordinates other than the end may
+        be repeated.
+        
+        Note
+        ----
+        This is non-sensical to call on an IndexSet where are the pixels
+        are not strongly connected. You should label and extract blobs
+        from an IndexSet *before* finding the border.
+        
+        """
+        if self.ndim != 2:
+            raise ValueError("IndexSet.border(): only defined for ndim == 2.")
+        
+        img = self.image2d(pad)
+        
+        # The 'lower' corner of the hypperectangle spanned by self.loc
+        y_lower, x_lower = self.bounds[:, 0]
+        
+        # 'start' in absolute coordinates
+        first_y, first_x = self.take(0).loc[0]
+        
+        # Offset to relative coordinates
+        start = first_y - y_lower + pad[0], first_x - x_lower + pad[1]
+        
+        # Location of the upper-left pixel in the image
+        offset = y_lower - pad[0], x_lower - pad[1]
+        
+        return border2d_(img, neighbors, start, offset)
+    
     def copy(self):
         """Copy all of the data in this IndexSet into a completely new one."""
         FLAGS = UNIQUE | SORTED | CONSUME
@@ -200,6 +252,35 @@ class IndexSet:
             if self._encoding is not None:
                 self._loc = decode(self._loc.view(np.uint32), self._encoding)
             self._encoding = None
+    
+    def drop(self, dimension):
+        """Drop a dimension from this IndexSet."""
+        
+        ndim = self.ndim
+        
+        if not dimension < self.ndim:
+            raise ValueError("Indexset.drop(): dimension given exceeds "
+              "number of dimensions in IndexSet")
+        
+        elif dimension < 0:
+            raise ValueError(
+                "Indexset.drop(): dimension given must be >= 0")
+        
+        if dimension == ndim - 1:
+            new_loc = self.loc[:, :ndim - 1].copy()
+            return IndexSet(new_loc, SORTED)
+        
+        loc = self.loc
+        new_loc = np.empty((self.n, ndim - 1), dtype=np.int32)
+        j = 0
+        
+        for i in range(ndim):
+            if i == dimension:
+                continue
+            new_loc[:, j] = loc[:, i]
+            j += 1
+        
+        return IndexSet(new_loc, NO_FLAGS)
     
     def encode(self, encoding):
         """Encode this IndexSet into a packed bit representation.
@@ -221,7 +302,7 @@ class IndexSet:
         """
         if self.is_encoded:
             raise ValueError("IndexSet is already encoded.")
-
+        
         _encoding = encoding.astype(np.int8)
         if not _encoding.size == self.ndim:
             raise ValueError("Length of encoding must match number of dims.")
@@ -249,18 +330,43 @@ class IndexSet:
         Notes
         -----
         Time complexity is O(ndim*log(n)) where ndim is is the number of
-        dimensions and n is the number of locations.
+        dimensions and n is the number of locations in this IndexSet.
         """
-        if not len(coord) == self.ndim:
-            raise ValueError("IndexSet.find_loc: len(coord) must equal ndim.")
-        start, stop = 0, self.n
-        for dim, c in enumerate(coord):
-            coords = self.loc[:, dim]
-            start = exponential_search(coords, c, start, stop)
-            stop = exponential_search(coords, c + 1, start, stop)
-            if start == stop or c != coords[start]:
-                return False, start
-        return True, start
+        if self.is_encoded:
+            _c = to_array(coord)#.resize()
+            if _c.ndim > 1:
+                raise AssertionError(
+                    "IndexSet.find_loc: `coord` must be one-dimensional.")
+            encoded_coord = encode(_c.reshape((1, _c.size)), self.encoding)[0]
+            return search_coord(self._loc.view(np.uint32), encoded_coord)
+        else:
+            return search_coord(self.loc, coord)
+    
+    def image2d(self, pad):
+        """The cropped 2d boolean image corresponding to the first two
+        dimensions of `loc`."""
+        if self.ndim < 2:
+            raise ValueError(
+                "Indexset.image(): indexset must have >=2 dimensions.")
+        
+        if pad[0] < 0 or pad[1] < 0:
+            raise ValueError("Indexset.image(): padding must be >= 0.")
+        
+        y_bounds = self.bounds[0]
+        x_bounds = self.bounds[1]
+        
+        y_pad, x_pad = pad
+        shp = (y_pad * 2 + 1 + y_bounds[1] - y_bounds[0],
+               x_pad * 2 + 1 + x_bounds[1] - x_bounds[0])
+        
+        img = np.zeros(shp, dtype=numba.boolean)
+        loc = self.loc[:, :2]
+        
+        for i in range(self.n):
+            img[loc[i, 0] - y_bounds[0] + y_pad,
+                loc[i, 1] - x_bounds[0] + x_pad] = True
+        
+        return img
     
     def omit(self, dim, selector):
         """Remove matching locations from this IndexSet.
@@ -310,13 +416,18 @@ class IndexSet:
     def split(self, index):
         """Split this IndexSet into two at the index."""
         if index >= self.n:
-            return self, make_empty(self.ndim)
+            return self, make_empty_like(self)
         
-        a_loc, b_loc = self.loc[:index], self.loc[index:]
-        a = IndexSet(a_loc, SORTED_UNIQUE)
-        b = IndexSet(b_loc, SORTED_UNIQUE)
-        if self.data is not None:
-            a.data, b.data = self.data[:index], self.data[index:]
+        a = self.take((0, index))
+        b = self.take((index, self.n))
+        
+        if not a.n + b.n == self.n:
+            print(self.n, a.n, b.n)
+            raise AssertionError("Error in split.")
+        
+        #if not (same_encoding(self, b) and same_encoding(self, b)):
+        #    raise AssertionError("IndexSet.split: encodings differ.")
+        
         return a, b
     
     def split_at_coord(self, coord, coord_to_first):
@@ -337,6 +448,7 @@ class IndexSet:
             than `coord`, respectively.
         """
         contains, index = self.find_loc(coord)
+        
         if coord_to_first and contains:
             return self.split(index + 1)
         else:
@@ -354,13 +466,44 @@ class IndexSet:
         -------
         An IndexSet with the locations at the given position.
         """
-        return take_(self, where)
+        ret = take_(self, where)
+        
+        #if not same_encoding(self, ret):
+        #    raise AssertionError('Result encoding differs in `IndexSet.take`')
+        
+        return ret
+
+
+#@numba.njit
+#def _to_int32(x):
+#    return x.astype(np.int32)
+
+
+@numba.generated_jit
+def convert_to_int32(x):
+    """Convert an array to int32 if it isn't already."""
+    if isinstance(x, numba.types.Array):
+        if x.dtype == numba.int32:
+            return lambda x: x
+        else:
+            return lambda x: x.astype(numba.int32)
+    
+    raise AssertionError("Can only convert numpy arrays to int32.")
 
 
 @numba.njit(nogil=True)
 def make_empty(ndim):
     loc = np.zeros((0, ndim), dtype=np.int32)
     return IndexSet(loc, SORTED_UNIQUE)
+
+
+@numba.njit(nogil=True)
+def make_empty_like(indexset):
+    loc = np.zeros((0, indexset._loc.shape[1]), dtype=np.int32)
+    ret = IndexSet(loc, SORTED_UNIQUE)
+    if indexset.is_encoded:
+        ret._encoding = indexset._encoding
+    return ret
 
 
 def make_indexset(x):
@@ -379,6 +522,7 @@ def make_data(x):
     return data
 
 
+@numba.njit(nogil=True)
 def concat_sorted_nonoverlapping(objs):
     """Concatenate non-overlapping IndexSets
 
@@ -386,7 +530,8 @@ def concat_sorted_nonoverlapping(objs):
     ---------
     objs : tuple of IndexSets
         All of the locations in each input IndexSet must be strictly
-        lexicographically less than all of the objects after.
+        lexicographically less than all of the objects after. Additionally,
+        all of the objs must have identical encoding.
 
     Returns
     -------
@@ -394,30 +539,37 @@ def concat_sorted_nonoverlapping(objs):
     
     Raises
     ------
-    ValueError if the locations in each obj are not all strictly
-    lexicographically less than all of the locations in the following
-    IndexSet.
+    Nothing. It is up to the user to ensure that the objects are, ordered,
+    non-overlapping and have identical encodings.
     """
     n_objs = len(objs)
-    ndim = objs[0].ndim
+
+    first_obj = objs[0]
+    n_encoded_cols = objs[0]._loc.shape[1]
     
     n_total = 0
     for o in objs:
         n_total += o.n
     
-    loc = np.empty((n_total, ndim), dtype=np.int32)
+    loc = np.empty((n_total, n_encoded_cols), dtype=np.int32)
     start = 0
+    
     for i in range(n_objs):
+        
         indexset = objs[i]
         # Ensure that vars are non-overlapping
         if start > 0 and indexset.n:
-            if (lex_less_Nd(indexset.loc[0], loc[start - 1]) or
-                    eq_Nd(indexset.loc[0], loc[start - 1])):
-                raise ValueError("Objects cannot overlap.")
+            
+            if not same_encoding(first_obj, indexset):
+                raise ValueError("concat_sorted_nonoverlapping: "
+                  "all objects must have identical encoding.")
         
         stop = start + indexset.n
-        loc[start:stop] = indexset.loc
+        loc[start:stop] = indexset._loc
         start = stop
+    
+    result = IndexSet(loc, SORTED_UNIQUE)
+    result._encoding = first_obj.encoding
     
     # Determine if there is any data attached to the result
     n_data_col = 0
@@ -426,8 +578,6 @@ def concat_sorted_nonoverlapping(objs):
             if n_data_col != 0 and objs[i].data.shape[1] != n_data_col:
                 raise ValueError("Number of data columns varies between objs.")
             n_data_col = objs[i].data.shape[1]
-    
-    result = IndexSet(loc, SORTED_UNIQUE)
     
     if n_data_col:
         data = np.full((n_total, n_data_col), np.nan, dtype=np.float32)
@@ -443,7 +593,26 @@ def concat_sorted_nonoverlapping(objs):
     return result
 
 
-concat_sorted_nonoverlapping_ = numba.njit(concat_sorted_nonoverlapping)
+@numba.njit(nogil=True)
+def search_coord(loc, coord):
+    """Find a row in an array of coordinates."""
+    stop, ndim = loc.shape
+    start = 0
+    
+    if not len(coord) == ndim:
+        raise ValueError("search_coord: Length of `coord` must equal number "
+                         "of columns in `loc`.")
+    
+    for dim in range(ndim):
+        c = coord[dim]
+        values = loc[:, dim]
+        start = exponential_search(values, c, start, stop)
+        stop = exponential_search(values, c + 1, start, stop)
+        
+        if start == stop or c != values[start]:
+            return False, start
+    
+    return True, start
 
 
 def is_indexset_subclass(obj):

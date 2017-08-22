@@ -29,11 +29,39 @@ def _decrement_direction(direction, n):
 
 
 @numba.njit
-def border2d_(img, start, y_neighbors, x_neighbors, y_offset=0, x_offset=0):
-    """img must be 2d and have more than one True value.
-    start must be the (y,x) index of leftmost True pixel on the uppermost row
+def border2d_(img, neighbors, start=(0, 0), offset=(0, 0)):
+    """ Find the 2d border of a connected component in an image..
+    
+    Arguments
+    ---------
+    img : 2d boolean array
+        True in the region we want to find the border. The blob in the image
+        must have the connectivity defined in neighbors. Additionally, the
+        image must be padded so that the offset between ALL True image
+        pixels and neighbor coordinates refer to a valid image pixel.
+    neighbors : array, array
+        A representation of a neighborhood. Each array corresponds to the y
+        and x coordinate offsets all neighbors. This should be in rotational
+        order as given by `blahb.Neighborhood.cc_neighbors`, that is,
+        in counter-clockwise rotational order starting with the lowest y offset
+        with the lowest x offset.
+    start : tuple of (y, x) coordinates
+        The element of the image that containing the lexicographically first
+        True pixel (i.e. top-most, left-most pixel).
+    offset : tuple of (y, x) coordinates
+        The offset of the first (0, 0) pixel in the image in coordinate space.
+    
+    Returns
+    -------
+    (y, x) : Two arrays of coordinates containing the border pixels in
+    counter-clockwise order. The first and last coordinates are identical.
+    Depending on the neighborhood, some coordinates other than the end may
+    be repeated.
     """
     # TODO: Document
+    
+    y_neighbors, x_neighbors = neighbors
+    y_offset, x_offset = offset
     y_saved = np.empty(2, dtype=np.int64)
     x_saved = np.empty(2, dtype=np.int64)
     

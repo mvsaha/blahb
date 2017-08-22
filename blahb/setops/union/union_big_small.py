@@ -298,10 +298,12 @@ def _union_big_small_Nd(a, b):
     return big[:n], small
 
 
-@numba.njit
+@numba.njit(nogil=True)
 def union_big_small_(a_loc, b_loc):
     ndim = a_loc.shape[1]
-    assert ndim == b_loc.shape[1]
+    if not ndim == b_loc.shape[1]:
+        raise AssertionError("a_loc and b_loc must have the same number of "
+                             "columns")
     
     if ndim == 1:
         return _union_big_small_1d(a_loc, b_loc)
@@ -315,8 +317,7 @@ def union_big_small_(a_loc, b_loc):
         return _union_big_small_Nd(a_loc, b_loc)
 
 
-
-@numba.njit(nogil=True)
+@numba.njit(cache=True)
 def merge_union_big_small_results(a_loc, b_loc, big, small, out=None):
     n_total = big.size
     ndim = a_loc.shape[1]

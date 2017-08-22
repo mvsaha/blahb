@@ -190,3 +190,22 @@ def eq_Nd(a, b):
         if _a != _b:
             return False
     return True
+
+
+@numba.njit
+def passthrough(x):
+    return x
+
+
+@numba.njit
+def convert_to_array(x):
+    return np.array(x)
+
+
+@numba.generated_jit
+def to_array(x):
+    """Convert a 1d tuple or numpy array to a numpy array."""
+    if isinstance(x, numba.types.Array):
+        return lambda x: passthrough(x)
+    else:
+        return lambda x: convert_to_array(x)

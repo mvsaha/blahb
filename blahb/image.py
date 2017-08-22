@@ -11,7 +11,7 @@ from .flags import SORTED_UNIQUE
 
 def image(indexset, padding=0, data_col=None):
     """Convert an indexset into a cropped boolean image.
-
+    
     Arguments
     ---------
     indexset : IndexSet instance
